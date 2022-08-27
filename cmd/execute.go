@@ -6,13 +6,19 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/i3ash/fortify/files"
 	"github.com/i3ash/fortify/fortifier"
 	"github.com/spf13/cobra"
 )
+
+var cleanupOnce sync.Once
+var cleanupDelaySeconds = 5
 
 func init() {
 	c := &cobra.Command{
@@ -32,6 +38,11 @@ Required Arguments:
 	initFlagVerbose(c)
 	initFlagIn(c, "[Required] Path of the fortified/encrypted input file")
 	_ = c.MarkFlagRequired("in")
+	c.Flags().IntVarP(&cleanupDelaySeconds, "cleanup-delay", "", 5,
+		"Number of seconds to wait before performing the cleanup operation")
+	if cleanupDelaySeconds < 1 {
+		cleanupDelaySeconds = 1
+	}
 }
 
 func execute(input string, args []string) (err error) {
@@ -60,20 +71,19 @@ func execute(input string, args []string) (err error) {
 	}
 	var out *os.File
 	out, err = os.CreateTemp("", ".bin")
-	defer func() {
-		_ = out.Close()
-		_ = os.Remove(out.Name())
-		//fmt.Printf("%s removed\n", out.Name())
+	defer cleanupOnce.Do(func() { cleanup(out) })
+	go func() {
+		select {
+		case <-time.After(time.Duration(cleanupDelaySeconds) * time.Second):
+			cleanupOnce.Do(func() { cleanup(out) })
+		}
 	}()
-	//started := time.Now()
-	//fmt.Printf("%s *-->O %s %d bytes [%s %s]\n", in.Name(), out.Name(), layout.DataLength(), meta.Key, meta.Mode)
 	r := bufio.NewReaderSize(in, 128*1024)
 	if err = dec.Decrypt(r, out, layout); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to decrypt program: %v\n", err)
 		os.Exit(1)
 		return nil
 	}
-	//fmt.Printf("%s *-->O %s %d bytes (%v) OK\n", in.Name(), out.Name(), layout.DataLength(), time.Since(started))
 	var wg sync.WaitGroup
 	var process *os.Process
 	chanSignal := make(chan os.Signal, 1)
@@ -113,7 +123,6 @@ func start(out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...s
 	if err := cmd.Start(); err != nil {
 		return cmd.Process, fmt.Errorf("failed to start program: %v", err)
 	}
-	//fmt.Printf("%s started\n", path)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
 		if err := cmd.Wait(); err != nil {
@@ -123,4 +132,24 @@ func start(out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...s
 		chanSignal <- syscall.SIGTERM
 	}(wg)
 	return cmd.Process, nil
+}
+
+func cleanup(out *os.File) {
+	programPath := out.Name()
+	programName := filepath.Base(programPath)
+	if !strings.HasPrefix(programName, ".bin") {
+		return
+	}
+	if programPath == "" {
+		return
+	}
+	if _, err := os.Stat(programPath); os.IsNotExist(err) {
+		return
+	}
+	if err := files.AcquireExclusiveLock(out.Fd()); err != nil {
+		return
+	}
+	_ = os.Remove(programPath)
+	_ = files.ReleaseLock(out.Fd())
+	_ = out.Close()
 }
