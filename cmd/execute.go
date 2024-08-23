@@ -70,12 +70,7 @@ func execute(input string, args []string) (err error) {
 		return
 	}
 	var out *os.File
-	preferred := "/dev/shm"
-	fallback := "/tmp"
-	if _, err = os.Stat(preferred); os.IsNotExist(err) {
-		preferred = fallback
-	}
-	out, err = os.CreateTemp(preferred, ".bin")
+	out, err = os.CreateTemp("", ".bin")
 	defer cleanupOnce.Do(func() { cleanup(out.Name()) })
 	go func() {
 		select {
