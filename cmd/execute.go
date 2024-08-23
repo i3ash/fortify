@@ -71,15 +71,17 @@ func execute(input string, args []string) (err error) {
 	}
 	var out *os.File
 	out, err = os.CreateTemp("", ".bin")
-	defer cleanupOnce.Do(func() { cleanup(out) })
+	defer cleanupOnce.Do(func() { cleanup(out.Name()) })
 	go func() {
 		select {
 		case <-time.After(time.Duration(cleanupDelaySeconds) * time.Second):
-			cleanupOnce.Do(func() { cleanup(out) })
+			cleanupOnce.Do(func() { cleanup(out.Name()) })
 		}
 	}()
 	r := bufio.NewReaderSize(in, 128*1024)
-	if err = dec.Decrypt(r, out, layout); err != nil {
+	err = dec.Decrypt(r, out, layout)
+	_ = out.Close()
+	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to decrypt program: %v\n", err)
 		os.Exit(1)
 		return nil
@@ -88,7 +90,7 @@ func execute(input string, args []string) (err error) {
 	var process *os.Process
 	chanSignal := make(chan os.Signal, 1)
 	signal.Notify(chanSignal, os.Interrupt, syscall.SIGTERM)
-	if process, err = start(out, &wg, chanSignal, rest...); err != nil {
+	if process, err = start(out.Name(), &wg, chanSignal, rest...); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to run program: %v\n", err)
 		os.Exit(2)
 		return nil
@@ -110,12 +112,11 @@ func permit(path string) error {
 	return nil
 }
 
-func start(out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
-	if err := permit(out.Name()); err != nil {
+func start(path string, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
+	if err := permit(path); err != nil {
 		fmt.Printf("failed to add permission: %v\n", err)
 		return nil, err
 	}
-	path := out.Name()
 	cmd := exec.Command(path, arg...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -134,8 +135,7 @@ func start(out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...s
 	return cmd.Process, nil
 }
 
-func cleanup(out *os.File) {
-	programPath := out.Name()
+func cleanup(programPath string) {
 	programName := filepath.Base(programPath)
 	if !strings.HasPrefix(programName, ".bin") {
 		return
@@ -146,10 +146,5 @@ func cleanup(out *os.File) {
 	if _, err := os.Stat(programPath); os.IsNotExist(err) {
 		return
 	}
-	if err := files.AcquireExclusiveLock(out.Fd()); err != nil {
-		return
-	}
 	_ = os.Remove(programPath)
-	_ = files.ReleaseLock(out.Fd())
-	_ = out.Close()
 }
