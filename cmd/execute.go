@@ -70,7 +70,12 @@ func execute(input string, args []string) (err error) {
 		return
 	}
 	var out *os.File
-	out, err = os.CreateTemp("", ".bin")
+	preferred := "/dev/shm"
+	fallback := "/tmp"
+	if _, err = os.Stat(preferred); os.IsNotExist(err) {
+		preferred = fallback
+	}
+	out, err = os.CreateTemp(preferred, ".bin")
 	defer cleanupOnce.Do(func() { cleanup(out.Name()) })
 	go func() {
 		select {
@@ -83,6 +88,7 @@ func execute(input string, args []string) (err error) {
 	_ = out.Close()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to decrypt program: %v\n", err)
+		cleanupOnce.Do(func() { cleanup(out.Name()) })
 		os.Exit(1)
 		return nil
 	}
@@ -92,6 +98,7 @@ func execute(input string, args []string) (err error) {
 	signal.Notify(chanSignal, os.Interrupt, syscall.SIGTERM)
 	if process, err = start(out.Name(), &wg, chanSignal, rest...); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to run program: %v\n", err)
+		cleanupOnce.Do(func() { cleanup(out.Name()) })
 		os.Exit(2)
 		return nil
 	}
