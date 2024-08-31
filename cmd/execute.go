@@ -17,6 +17,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const tempFilePrefix = ".oO"
+
+var tempDir = ""
 var cleanupOnce sync.Once
 var cleanupDelaySeconds = 5
 
@@ -38,6 +41,7 @@ Required Arguments:
 	initFlagVerbose(c)
 	initFlagIn(c, "[Required] Path of the fortified/encrypted input file")
 	_ = c.MarkFlagRequired("in")
+	c.Flags().StringVarP(&tempDir, "temp-dir", "", "", "Temporary directory")
 	c.Flags().IntVarP(&cleanupDelaySeconds, "cleanup-delay", "", 5,
 		"Number of seconds to wait before performing the cleanup operation")
 	if cleanupDelaySeconds < 1 {
@@ -70,7 +74,12 @@ func execute(input string, args []string) (err error) {
 		return
 	}
 	var out *os.File
-	out, err = os.CreateTemp("", ".bin")
+	out, err = os.CreateTemp(tempDir, tempFilePrefix)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to create temp: %v\n", err)
+		os.Exit(1)
+		return nil
+	}
 	defer cleanupOnce.Do(func() { cleanup(out.Name()) })
 	go func() {
 		select {
@@ -139,7 +148,7 @@ func start(path string, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...st
 
 func cleanup(programPath string) {
 	programName := filepath.Base(programPath)
-	if !strings.HasPrefix(programName, ".bin") {
+	if !strings.HasPrefix(programName, tempFilePrefix) {
 		return
 	}
 	if programPath == "" {
