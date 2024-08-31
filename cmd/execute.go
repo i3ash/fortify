@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const tempFilePrefix = ".oO"
+const tempFilePrefix = ".oO0"
 
 var tempDir = ""
 var cleanupOnce sync.Once
@@ -80,19 +80,12 @@ func execute(input string, args []string) (err error) {
 		os.Exit(1)
 		return nil
 	}
-	defer cleanupOnce.Do(func() { cleanup(out.Name()) })
-	go func() {
-		select {
-		case <-time.After(time.Duration(cleanupDelaySeconds) * time.Second):
-			cleanupOnce.Do(func() { cleanup(out.Name()) })
-		}
-	}()
+	defer cleanupOnce.Do(func() { cleanup(out) })
 	r := bufio.NewReaderSize(in, 128*1024)
 	err = dec.Decrypt(r, out, layout)
-	_ = out.Close()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to decrypt program: %v\n", err)
-		cleanupOnce.Do(func() { cleanup(out.Name()) })
+		cleanupOnce.Do(func() { cleanup(out) })
 		os.Exit(1)
 		return nil
 	}
@@ -100,9 +93,9 @@ func execute(input string, args []string) (err error) {
 	var process *os.Process
 	chanSignal := make(chan os.Signal, 1)
 	signal.Notify(chanSignal, os.Interrupt, syscall.SIGTERM)
-	if process, err = start(out.Name(), &wg, chanSignal, rest...); err != nil {
+	if process, err = start(out, &wg, chanSignal, rest...); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to run program: %v\n", err)
-		cleanupOnce.Do(func() { cleanup(out.Name()) })
+		cleanupOnce.Do(func() { cleanup(out) })
 		os.Exit(2)
 		return nil
 	}
@@ -123,7 +116,9 @@ func permit(path string) error {
 	return nil
 }
 
-func start(path string, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
+func start(out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
+	path := out.Name()
+	_ = out.Close()
 	if err := permit(path); err != nil {
 		fmt.Printf("failed to add permission: %v\n", err)
 		return nil, err
@@ -134,6 +129,10 @@ func start(path string, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...st
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		return cmd.Process, fmt.Errorf("failed to start program: %v", err)
+	}
+	select {
+	case <-time.After(time.Duration(cleanupDelaySeconds) * time.Second):
+		cleanupOnce.Do(func() { cleanup(out) })
 	}
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -146,16 +145,19 @@ func start(path string, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...st
 	return cmd.Process, nil
 }
 
-func cleanup(programPath string) {
-	programName := filepath.Base(programPath)
-	if !strings.HasPrefix(programName, tempFilePrefix) {
+func cleanup(out *os.File) {
+	programPath := out.Name()
+	if programPath == "" {
 		return
 	}
-	if programPath == "" {
+	programName := filepath.Base(programPath)
+	if !strings.HasPrefix(programName, tempFilePrefix) {
 		return
 	}
 	if _, err := os.Stat(programPath); os.IsNotExist(err) {
 		return
 	}
-	_ = os.Remove(programPath)
+	if err := os.Remove(programPath); err != nil {
+		return
+	}
 }
