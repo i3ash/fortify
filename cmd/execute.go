@@ -18,8 +18,9 @@ import (
 )
 
 const tempFilePrefix = ".oO0"
+const mountBinDir = "/usr/local/sbin"
+const keyListFile = "/dev/shm/keys/k_fortify"
 
-var tempDir = ""
 var cleanupOnce sync.Once
 var cleanupDelaySeconds = 5
 
@@ -27,7 +28,7 @@ func init() {
 	c := &cobra.Command{
 		Short: "Execute a decrypted program from the fortified file",
 		Use:   "execute -i <input-file> [flags] <key1> [key2] ... [-- [arg1] [arg2] ...]",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.MinimumNArgs(0),
 		RunE:  func(_ *cobra.Command, args []string) error { return execute(flagIn, args) },
 	}
 	c.SetUsageTemplate(fmt.Sprintf(`%s
@@ -41,7 +42,6 @@ Required Arguments:
 	initFlagVerbose(c)
 	initFlagIn(c, "[Required] Path of the fortified/encrypted input file")
 	_ = c.MarkFlagRequired("in")
-	c.Flags().StringVarP(&tempDir, "temp-dir", "", "", "Temporary directory")
 	c.Flags().IntVarP(&cleanupDelaySeconds, "cleanup-delay", "", 5,
 		"Number of seconds to wait before performing the cleanup operation")
 	if cleanupDelaySeconds < 1 {
@@ -62,10 +62,18 @@ func execute(input string, args []string) (err error) {
 		return
 	}
 	//fmt.Printf("%s\n", layout)
+	docker := dockerYes()
+	merge := args
+	if docker {
+		paths := dockerReadKeyPaths(keyListFile)
+		merge = make([]string, 0, len(args)+len(paths))
+		merge = append(merge, paths...)
+		merge = append(merge, args...)
+	}
 	meta := layout.Metadata()
 	var f *fortifier.Fortifier
 	var rest []string
-	if f, rest, err = newFortifier(meta.Key, meta, args); err != nil {
+	if f, rest, err = newFortifier(meta.Key, meta, merge); err != nil {
 		return
 	}
 	var dec fortifier.Decrypter
@@ -75,15 +83,15 @@ func execute(input string, args []string) (err error) {
 	}
 	var out *os.File
 	var command string
-	if isRunningInDocker() {
+	if docker {
 		command = filepath.Base(in.Name())
-		out, err = os.Create(tempDir + "/" + command)
+		out, err = os.Create(mountBinDir + "/" + command)
 	} else {
-		out, err = os.CreateTemp(tempDir, tempFilePrefix)
+		out, err = os.CreateTemp("", tempFilePrefix)
 		command = out.Name()
 	}
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Failed to create temp: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to create file: %v\n", err)
 		os.Exit(1)
 		return nil
 	}
@@ -157,10 +165,6 @@ func cleanup(out *os.File) {
 	if programPath == "" {
 		return
 	}
-	programName := filepath.Base(programPath)
-	if !strings.HasPrefix(programName, tempFilePrefix) {
-		return
-	}
 	if _, err := os.Stat(programPath); os.IsNotExist(err) {
 		return
 	}
@@ -169,7 +173,31 @@ func cleanup(out *os.File) {
 	}
 }
 
-func isRunningInDocker() bool {
+func dockerYes() bool {
 	_, err := os.Stat("/.dockerenv")
-	return os.IsExist(err)
+	return err == nil
+}
+
+func dockerReadKeyPaths(filePath string) []string {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return []string{}
+	}
+	defer func() { _ = file.Close() }()
+	var result []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		elements := strings.Split(line, ",")
+		for _, element := range elements {
+			s := strings.TrimSpace(element)
+			if s != "" {
+				result = append(result, s)
+			}
+		}
+	}
+	if err = scanner.Err(); err != nil {
+		return []string{}
+	}
+	return result
 }
