@@ -74,7 +74,14 @@ func execute(input string, args []string) (err error) {
 		return
 	}
 	var out *os.File
-	out, err = os.CreateTemp(tempDir, tempFilePrefix)
+	var command string
+	if isRunningInDocker() {
+		command = filepath.Base(in.Name())
+		out, err = os.Create(tempDir + "/" + command)
+	} else {
+		out, err = os.CreateTemp(tempDir, tempFilePrefix)
+		command = out.Name()
+	}
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to create temp: %v\n", err)
 		os.Exit(1)
@@ -93,7 +100,7 @@ func execute(input string, args []string) (err error) {
 	var process *os.Process
 	chanSignal := make(chan os.Signal, 1)
 	signal.Notify(chanSignal, os.Interrupt, syscall.SIGTERM)
-	if process, err = start(out, &wg, chanSignal, rest...); err != nil {
+	if process, err = start(command, out, &wg, chanSignal, rest...); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to run program: %v\n", err)
 		cleanupOnce.Do(func() { cleanup(out) })
 		os.Exit(2)
@@ -116,14 +123,14 @@ func permit(path string) error {
 	return nil
 }
 
-func start(out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
+func start(command string, out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
 	path := out.Name()
 	_ = out.Close()
 	if err := permit(path); err != nil {
 		fmt.Printf("failed to add permission: %v\n", err)
 		return nil, err
 	}
-	cmd := exec.Command(path, arg...)
+	cmd := exec.Command(command, arg...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -160,4 +167,9 @@ func cleanup(out *os.File) {
 	if err := os.Remove(programPath); err != nil {
 		return
 	}
+}
+
+func isRunningInDocker() bool {
+	_, err := os.Stat("/.dockerenv")
+	return os.IsExist(err)
 }
