@@ -61,7 +61,6 @@ func execute(input string, args []string) (err error) {
 	if err = layout.ReadHeadIn(in); err != nil {
 		return
 	}
-	//fmt.Printf("%s\n", layout)
 	docker := dockerYes()
 	merge := args
 	if docker {
@@ -87,21 +86,32 @@ func execute(input string, args []string) (err error) {
 		command = filepath.Base(in.Name())
 		out, err = os.Create(mountBinDir + "/" + command)
 	} else {
-		out, err = os.CreateTemp("", tempFilePrefix)
-		command = out.Name()
+		if out, err = os.CreateTemp("", tempFilePrefix); err == nil {
+			command = out.Name()
+		}
 	}
+	defer func() { cleanupOnce.Do(func() { cleanup(out) }) }()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to create file: %v\n", err)
-		os.Exit(1)
 		return nil
 	}
-	defer cleanupOnce.Do(func() { cleanup(out) })
 	r := bufio.NewReaderSize(in, 128*1024)
 	err = dec.Decrypt(r, out, layout)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to decrypt program: %v\n", err)
 		cleanupOnce.Do(func() { cleanup(out) })
-		os.Exit(1)
+		return nil
+	}
+	path := out.Name()
+	_ = out.Close()
+	if err = clean(out.Name()); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to setup cleaning: %v\n", err)
+	}
+	if err = permit(path); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to permit: %v\n", err)
+	}
+	argv := append([]string{command}, rest...)
+	if err = syscall.Exec(command, argv, os.Environ()); err == nil {
 		return nil
 	}
 	var wg sync.WaitGroup
@@ -111,18 +121,23 @@ func execute(input string, args []string) (err error) {
 	if process, err = start(command, out, &wg, chanSignal, rest...); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to run program: %v\n", err)
 		cleanupOnce.Do(func() { cleanup(out) })
-		os.Exit(2)
 		return nil
 	}
-	defer func() { fmt.Println("Executed") }()
 	sig := <-chanSignal
 	_ = process.Signal(sig)
 	wg.Wait()
 	return
 }
 
+func clean(path string) error {
+	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("sleep %d && rm '%s'", cleanupDelaySeconds, path))
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	return cmd.Start()
+}
+
 func permit(path string) error {
-	cmd := exec.Command("/bin/sh", "-c", "chmod u+x "+path)
+	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("chmod u+x '%s'", path))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -132,12 +147,6 @@ func permit(path string) error {
 }
 
 func start(command string, out *os.File, wg *sync.WaitGroup, chanSignal chan os.Signal, arg ...string) (*os.Process, error) {
-	path := out.Name()
-	_ = out.Close()
-	if err := permit(path); err != nil {
-		fmt.Printf("failed to add permission: %v\n", err)
-		return nil, err
-	}
 	cmd := exec.Command(command, arg...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
