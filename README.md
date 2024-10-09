@@ -42,6 +42,12 @@ fortify version
 
 This command will display the installed version, confirming the installation.
 
+#### Run with docker
+
+```shell
+docker run --rm i3ash/fortify version
+```
+
 ### Shamir's Secret Sharing (SSS)
 
 #### Encryption

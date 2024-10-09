@@ -1,0 +1,70 @@
+name: Docker Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      os: { type: string, default: 'ubuntu-latest', description: "Name of the OS that jobs run on" }
+      out-docker-image: { type: string, default: 'fortify', description: "Name of output docker image" }
+      out-docker-latest: { type: boolean, default: false, description: "If build docker image with the latest tag" }
+  workflow_call:
+    inputs:
+      os: { type: string, required: true, description: "Name of the OS that jobs run on" }
+      out-docker-image: { type: string, default: 'fortify', description: "Name of output docker image" }
+      out-docker-latest: { type: boolean, default: false, description: "If build docker image with the latest tag" }
+
+jobs:
+  build-and-upload:
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+          fetch-depth: 30
+
+      - name: Setup Variables
+        if: ${{ ! startsWith(inputs.os, 'windows') }}
+        run: |
+          git_version_tag() {
+            git fetch --tags
+            local exact_tag
+            exact_tag=$(git describe --tags --exact-match 2>/dev/null || echo '')
+            if [ -n "$exact_tag" ]; then
+              echo "$exact_tag"
+            else
+              local latest_tag
+              latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0')
+              local latest_commit
+              latest_commit=$(git rev-parse --short=7 HEAD)
+              echo "$latest_tag-$latest_commit"
+            fi
+          }
+          tag=$(git_version_tag)
+          system=$(uname -s | tr '[:upper:]' '[:lower:]')
+          architecture=$(uname -m | tr '[:upper:]' '[:lower:]' | sed 's/amd64/x86_64/g')
+          artifact_filename="${{ inputs.out-docker-image }}-${system}-${architecture}"
+          echo "ArtifactTag=$tag" >> $GITHUB_ENV
+          echo "ArtifactFilename=$artifact_filename" >> $GITHUB_ENV
+          sed -e "s|#VERSION|${tag}|g" < "cmd/version.go-e" > "cmd/version.go"
+          echo "Artifact Version:  $tag"
+          echo "Artifact Filename: $artifact_filename"
+
+      - name: Build the Docker Image
+        working-directory: '${{ github.workspace }}'
+        run: >
+          docker build --no-cache
+          --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}:${{ env.ArtifactTag }}
+          --tag ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}:latest .
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker Image to Docker Hub
+        if: env.ArtifactTag != 'v0'
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}:${{ env.ArtifactTag }}
+
+      - name: Push Docker Image with latest Tag
+        if: env.ArtifactTag != 'v0' && inputs.out-docker-latest
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}:latest
