@@ -99,7 +99,7 @@ func (f *FileLayout) WriteHeadOut(out io.Writer) (err error) {
 	if f.metadataRaw, err = json.Marshal(f.metadata); err != nil {
 		return
 	}
-	f.metadataLength = uint32(len(f.metadataRaw) & 0xFFFFFFFF)
+	f.metadataLength = uint32(len(f.metadataRaw))
 	f.checksum = make([]byte, 32)     // place hold
 	f.dataLength = 0                  // place hold
 	f.headChecksum = make([]byte, 32) // place hold
