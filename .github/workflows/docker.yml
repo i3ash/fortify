@@ -6,7 +6,6 @@ on:
       os: { type: string, default: 'ubuntu-latest', description: "Name of the OS that jobs run on" }
       out-docker-image: { type: string, default: 'fortify', description: "Name of output docker image" }
       out-docker-latest: { type: boolean, default: false, description: "If build docker image with the latest tag" }
-      out-platforms: { type: string, default: "", description: "OS/ARCH of docker image" }
   workflow_call:
     inputs:
       os: { type: string, required: true, description: "Name of the OS that jobs run on" }
@@ -58,7 +57,39 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Images for Multiple Architectures
+      - name: Build and Push Docker Images - Debian
+        if: env.ArtifactTag != 'v0'
+        working-directory: '${{ github.workspace }}'
+        env:
+          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
+          ARTIFACT_TAG: ${{ env.ArtifactTag }}-debian
+          LATEST_TAG: ${{ inputs.out-docker-latest }}
+        run: |
+          TAGS="--tag $DOCKER_IMAGE:$ARTIFACT_TAG"
+          if [ "$LATEST_TAG" = "true" ]; then
+            TAGS="$TAGS --tag $DOCKER_IMAGE:debian"
+          fi
+          docker buildx build $TAGS \
+            --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v5,linux/386,linux/ppc64le,linux/s390x,linux/mips64le \
+            --target debian --push .
+
+      - name: Build and Push Docker Images - Alpine
+        if: env.ArtifactTag != 'v0'
+        working-directory: '${{ github.workspace }}'
+        env:
+          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
+          ARTIFACT_TAG: ${{ env.ArtifactTag }}-alpine
+          LATEST_TAG: ${{ inputs.out-docker-latest }}
+        run: |
+          TAGS="--tag $DOCKER_IMAGE:$ARTIFACT_TAG"
+          if [ "$LATEST_TAG" = "true" ]; then
+            TAGS="$TAGS --tag $DOCKER_IMAGE:alpine"
+          fi
+          docker buildx build $TAGS \
+            --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/ppc64le,linux/s390x,linux/riscv64 \
+            --target alpine --push .
+
+      - name: Build and Push Docker Images - Minimal
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
         env:
@@ -71,5 +102,8 @@ jobs:
             TAGS="$TAGS --tag $DOCKER_IMAGE:latest"
           fi
           docker buildx build $TAGS \
-            --platform linux/amd64,linux/arm64,linux/arm/v7,linux/386,linux/ppc64le,linux/s390x,linux/riscv64,linux/mips64le \
-            --push .
+            --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/ppc64le,linux/s390x,linux/riscv64 \
+            --target minimal --push .
+
+## --------------------
+## 241010
