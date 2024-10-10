@@ -97,6 +97,7 @@ jobs:
 
       - name: Build
         #run: go build -v ./...
+        shell: bash
         run: |
           CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -v -o ./${{ env.ArtifactFilename }}
           file ./${{ env.ArtifactFilename }}
