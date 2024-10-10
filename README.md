@@ -4,49 +4,82 @@
 
 ## Features
 
-* Fortifies any file through encryption, then decrypts or executes the fortified files.
+* Fortifies any file through encryption, then decrypts or executes the fortified file.
 * Encrypts file using AES-256.
 * Protects the AES secret key with either Shamir's Secret Sharing (SSS) or RSA encryption.
 
 ## Usage Overview
 
-### Install the Latest Version of `fortify`
+### Prerequisites
 
-#### Installation on Linux or macOS
+- Supported Operating Systems:
+    - Linux
+    - macOS
+    - Windows
 
-To install the latest version of `fortify` on Linux or macOS, execute the following command in your terminal:
+### Run with Docker
 
-```shell
+Run fortify without installing it directly on your system by using Docker:
+
+```sh
+docker run --rm i3ash/fortify version
+```
+
+This command pulls the fortify Docker image and executes it, displaying the version.
+
+### Run after Installation
+
+Choose the installation method that best suits your operating system and preferences.
+
+#### 1. Installation via Homebrew (macOS)
+
+Homebrew provides a straightforward way to install `fortify` on macOS.
+
+- **Direct Installation:**
+
+```sh
+brew install i3ash/tap/fortify
+```
+
+- **Alternative Method:**
+
+First, add the repository, then install:
+
+```sh
+brew tap i3ash/tap && brew install fortify
+```
+
+Choose the method that best fits your workflow.
+
+#### 2. Installation via Shell Script (Linux / macOS)
+
+Use `curl` to download and run the official installation script:
+
+```sh
 curl -sSL https://i3ash.com/fortify/install.sh | sh
 ```
 
-This command downloads and runs the installation script, ensuring you get the most up-to-date version of `fortify`.
+This method ensures you receive the latest stable version of fortify.
 
-#### Installation Using `go install`
+#### 3. Installation via Go
 
-If you have the Go development environment set up, you can also install `fortify` using Go. This method is compatible with macOS, Linux, and Windows. To install:
+If you have the Go development environment set up, you can install fortify on macOS, Linux, or Windows:
 
-```shell
+```sh
 go install github.com/i3ash/fortify@latest
 ```
 
-This command installs the latest version of `fortify` via Go.
+This command leverages the Go toolchain to fetch and install the latest version of fortify.
 
 #### Verifying the Installation
 
-After installation, verify that `fortify` was installed successfully by checking its version:
+After installation, confirm that fortify is installed correctly by checking its version:
 
-```shell
+```sh
 fortify version
 ```
 
-This command will display the installed version, confirming the installation.
-
-#### Run with docker
-
-```shell
-docker run --rm i3ash/fortify version
-```
+A successful installation will display the current version of fortify.
 
 ### Shamir's Secret Sharing (SSS)
 
@@ -61,12 +94,10 @@ Encrypt files with specified key parts:
 
 `fortify encrypt -i <input_file> <key_part1> <key_part2> ...`
 
-
 #### Decryption
 
 Decrypt files with specified key parts:
 `fortify decrypt -i <fortified_file> <key_part1> <key_part2> ...`
-
 
 #### Execution
 
@@ -80,12 +111,10 @@ Execute fortified files with specified key parts:
 Encrypt files with RSA public key:
 `fortify encrypt -i <input_file> -k rsa <public_key_file>`
 
-
 #### Decryption
 
 Decrypt files with RSA private key:
 `fortify decrypt -i <fortified_file> <private_key_file>`
-
 
 #### Execution
 
