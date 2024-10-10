@@ -3,8 +3,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-ENV CGO_ENABLED=0
-RUN go build -a -installsuffix cgo -ldflags '-s -w' -o fortify
+RUN CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -v -o fortify
 
 FROM scratch
 WORKDIR /

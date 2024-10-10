@@ -45,7 +45,7 @@ build() {
   local file
   file="${cmd}-$(go env GOHOSTOS)-$(go env GOARCH)"
   file=$(echo "${file}" | tr '[:upper:]' '[:lower:]' | sed 's/amd64/x86_64/g')
-  go build -ldflags "-s -w" -o "${OUT_DIR}/${file}"
+  CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -v -o "${OUT_DIR}/${file}"
   echo -e "Built: ${OUT_DIR}/${file}" >&1
   ln -s "${OUT_DIR}/${file}" "${OUT_DIR}/${cmd}"
   popd >/dev/null || exit 1
