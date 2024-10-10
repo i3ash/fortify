@@ -57,6 +57,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Clean Docker environment
+        run: |
+          docker system prune -af
+          docker builder prune -af
+
       - name: Build and Push Docker Images - Debian
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
