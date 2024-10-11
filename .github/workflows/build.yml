@@ -126,3 +126,19 @@ jobs:
           retention-days: 3
           name: ${{ env.ArtifactFilename }}
           path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
+
+      - name: Create Darwin Universal Binary
+        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
+        run: |
+          universal_filename="fortify-darwin-universal"
+          lipo -create -output ${universal_filename} fortify-darwin-x86_64 fortify-darwin-arm64
+          file ${universal_filename}
+          echo "ArtifactFilename=${universal_filename}" >> $GITHUB_ENV
+
+      - name: Upload Darwin Universal Binary
+        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 3
+          name: ${{ env.ArtifactFilename }}
+          path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
