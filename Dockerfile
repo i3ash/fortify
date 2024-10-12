@@ -11,9 +11,10 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -a -installsuffix nocgo -ldflags '-s -w' -v -o fortify
 
 FROM scratch AS minimal
-WORKDIR /
-COPY --from=builder --chmod=555 /app/fortify ./
-ENTRYPOINT ["/fortify"]
+ENV PATH="/usr/local/bin"
+WORKDIR /root
+COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
+ENTRYPOINT ["fortify"]
 
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS alpine
 WORKDIR /root
