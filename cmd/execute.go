@@ -104,9 +104,6 @@ func execute(input string, args []string) (err error) {
 	}
 	path := out.Name()
 	_ = out.Close()
-	if err = clean(out.Name()); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Failed to setup cleaning: %v\n", err)
-	}
 	if err = permit(path); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to permit: %v\n", err)
 	}
@@ -129,19 +126,14 @@ func execute(input string, args []string) (err error) {
 	return
 }
 
-func clean(path string) error {
-	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("sleep %d && rm '%s'", cleanupDelaySeconds, path))
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	return cmd.Start()
-}
-
 func permit(path string) error {
-	cmd := exec.Command("/bin/sh", "-c", fmt.Sprintf("chmod u+x '%s'", path))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("chmod failed: %v", err)
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %v", err)
+	}
+	mode := info.Mode() | 0100 // Adds execute permission for the owner
+	if err := os.Chmod(path, mode); err != nil {
+		return fmt.Errorf("failed to change file permissions: %v", err)
 	}
 	return nil
 }
