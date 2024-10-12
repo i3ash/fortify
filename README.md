@@ -38,7 +38,7 @@ Homebrew provides a straightforward way to install `fortify` on macOS.
 - **Direct Installation:**
 
 ```sh
-brew install i3ash/tap/fortify
+brew install i3ash/bin/fortify
 ```
 
 - **Alternative Method:**
@@ -46,7 +46,7 @@ brew install i3ash/tap/fortify
 First, add the repository, then install:
 
 ```sh
-brew tap i3ash/tap && brew install fortify
+brew tap i3ash/bin && brew install fortify
 ```
 
 Choose the method that best fits your workflow.
