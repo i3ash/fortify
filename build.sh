@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-
 declare SELF
 SELF=$(readlink -f "$0")
 declare -r SELF_DIR=${SELF%/*}
 declare -r OUT_DIR=${SELF_DIR:?}/build
-
-check() {
-  if ! command -v go &>/dev/null; then
-    echo "Error: Go language environment not found." >&2
-    exit 1
-  fi
-  printf "Check: " >&1
-  which go >&1
-}
 
 cleanup() {
   mkdir -p "${OUT_DIR}"
@@ -25,55 +15,36 @@ cleanup() {
   mkdir -p "${OUT_DIR}/rsa"
 }
 
-build() {
-  pushd "${SELF_DIR}/${1:-.}" >/dev/null || exit 1
-  echo "Build: ${PWD}" >&1
-  go mod tidy || {
-    echo "Error: Failed to tidy Go modules." >&2
-    exit 1
-  }
-  if ! go mod download; then
-    echo "Error: Failed to download dependencies. Retrying..." >&2
-    go clean -modcache
-    go mod download || {
-      echo "Error: Still failed to download dependencies. Exiting." >&2
-      exit 1
-    }
-  fi
-  gofmt -w -l -d -s .
-  local cmd="${PWD##*/}"
-  local file
-  file="${cmd}-$(go env GOHOSTOS)-$(go env GOARCH)"
-  file=$(echo "${file}" | tr '[:upper:]' '[:lower:]' | sed 's/amd64/x86_64/g')
-  CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -v -o "${OUT_DIR}/${file}"
-  echo -e "Built: ${OUT_DIR}/${file}" >&1
-  ln -s "${OUT_DIR}/${file}" "${OUT_DIR}/${cmd}"
-  popd >/dev/null || exit 1
-  "${OUT_DIR}/${cmd}" version
+setup_cidoer() {
+  local ref="${1:-main}" dir="${2:-.cidoer}" path
+  local archive_url="https://github.com/i3ash/cidoer/archive/$ref.zip"
+  printf '%s%s\n' 'Downloading:' "$archive_url"
+  curl -fsSL "$archive_url" -o source.zip
+  printf '%s%s\n' 'Extracting:' "$(pwd)"
+  unzip -q source.zip -d "$(pwd)"
+  rm source.zip
+  rm -rf "$(pwd)"/"${dir:?}"
+  mv "cidoer-$ref" "$dir"
+  ls -lhAR "$dir"
+  path="$(pwd)"/"$dir"
+  source "$path"/cidoer.core.sh
+  export CIDOER_DIR="$path"
+  export CIDOER_CORE_FILE="$path/cidoer.core.sh"
+  do_print_section FINISHED
+  uname -a || print 'uname error'
+  do_print_dash_pair 'CIDOER_OS_TYPE' "$(do_os_type)"
 }
 
-version() {
-  local version_tag
-  version_tag=$(git_version_tag)
-  local version_file="${SELF_DIR}/cmd/version.go"
-  sed -e "s|#VERSION|${version_tag}|g" < "${version_file}-e" > "${version_file}"
-}
-
-git_version_tag() {
-  local exact_tag
-  exact_tag=$(git describe --tags --exact-match 2>/dev/null || echo '')
-  if [ -n "$exact_tag" ]; then
-    echo "$exact_tag"
-  else
-    local latest_tag
-    latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0')
-    local latest_commit
-    latest_commit=$(git rev-parse --short=7 HEAD)
-    echo "$latest_tag-$latest_commit"
-  fi
-}
-
-version
-check
+if [ ! -f '.cidoer/cidoer.core.sh' ];then
+  setup_cidoer '' ''
+fi
 cleanup
-build .
+
+source cidoer.sh
+do_workflow_job prepare
+do_workflow_job build
+
+if [[ 'darwin' == $(uname -s | tr '[:upper:]' '[:lower:]') ]]; then
+  do_workflow_job build_darwin_x64
+  do_workflow_job build_darwin_universal
+fi

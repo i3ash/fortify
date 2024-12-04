@@ -17,126 +17,78 @@ jobs:
   build-and-upload:
     name: "Build & Upload"
     runs-on: ${{ inputs.os }}
+    strategy:
+      matrix:
+        job:
+          - linux_x64
+          - linux_aarch64
+          - linux_riscv64
+          - linux_mips64le
+          - darwin_arm64
+          - darwin_x64
+          - darwin_universal
+          - windows_x64
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code for tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/checkout@v4
         with:
           submodules: 'true'
-          fetch-depth: 30
+          fetch-depth: 1
+          fetch-tags: false
+      - name: Checkout code for branch
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+          fetch-depth: 20
+          fetch-tags: true
 
-      - name: Setup Variables
-        if: ${{ ! startsWith(inputs.os, 'windows') }}
-        run: |
-          git_version_tag() {
-            git fetch --tags
-            local exact_tag
-            exact_tag=$(git describe --tags --exact-match 2>/dev/null || echo '')
-            if [ -n "$exact_tag" ]; then
-              echo "$exact_tag"
-            else
-              local latest_tag
-              latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0')
-              local latest_commit
-              latest_commit=$(git rev-parse --short=7 HEAD)
-              echo "$latest_tag-$latest_commit"
-            fi
-          }
-          tag=$(git_version_tag)
-          system=$(uname -s | tr '[:upper:]' '[:lower:]')
-          architecture=$(uname -m | tr '[:upper:]' '[:lower:]' | sed 's/amd64/x86_64/g')
-          artifact_filename="fortify-${system}-${architecture}"
-          echo "ArtifactTag=$tag" >> $GITHUB_ENV
-          echo "ArtifactFilename=$artifact_filename" >> $GITHUB_ENV
-          sed -e "s|#VERSION|${tag}|g" < "cmd/version.go-e" > "cmd/version.go"
-          echo "Artifact Version:  $tag"
-          echo "Artifact Filename: $artifact_filename"
-
-      - name: Setup Variables on Windows
-        if: startsWith(inputs.os, 'windows')
-        run: |
-          function Get-GitVersionTag {
-            git fetch --tags
-            $exactTag = git describe --tags --exact-match 2>$null
-            if ($LASTEXITCODE -ne 0) {
-              $LASTEXITCODE = 0
-            }
-            if ($exactTag) {
-              Write-Output $exactTag
-            } else {
-              $latestTag = git describe --tags --abbrev=0 2>$null
-              if ($LASTEXITCODE -ne 0) {
-                $LASTEXITCODE = 0
-              }
-              if (-not $latestTag) {
-                $latestTag = 'v0'
-              }
-              $latestCommit = (git rev-parse --short=7 HEAD).Trim()
-              Write-Output "$latestTag-$latestCommit"
-            }
-          }
-          $tag = Get-GitVersionTag
-          if ($LASTEXITCODE -ne 0) {
-            $LASTEXITCODE = 0
-          }
-          $system = "windows"
-          $architecture = $env:PROCESSOR_ARCHITECTURE.ToLower()
-          $architecture = $architecture -replace 'amd64', 'x86_64'
-          $artifact_filename = "fortify-${system}-${architecture}"
-          echo "ArtifactTag=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "ArtifactFilename=$artifact_filename" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          (Get-Content "cmd/version.go-e") -replace '#VERSION', $tag | Set-Content "cmd/version.go"
-          Write-Host "Artifact Version:  $tag"
-          Write-Host "Artifact Filename: $artifact_filename"
+      - name: Setup CIDoer
+        uses: i3ash/cidoer@main
+        with: { ref: main }
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
 
-      - name: Test
-        run: go test -v ./...
-
-      - name: Build
-        #run: go build -v ./...
+      - name: Prepare
         shell: bash
         run: |
-          CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -v -o ./${{ env.ArtifactFilename }}
-          file ./${{ env.ArtifactFilename }}
-          ./${{ env.ArtifactFilename }} version
+          source cidoer.sh
+          do_workflow_job prepare
+          echo "ArtifactTag=${ARTIFACT_TAG:-}" >> $GITHUB_ENV
 
-      - name: Upload
-        if: env.ArtifactTag != 'v0'
-        uses: actions/upload-artifact@v4
-        with:
-          retention-days: 3
-          name: ${{ env.ArtifactFilename }}
-          path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
-
-      - name: Build Darwin X64
-        if: startsWith(inputs.os, 'macos')
+      - name: Run ${{ matrix.job }}
+        if: |
+          (
+          (matrix.job == 'linux_x64'        && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'linux_aarch64'    && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'linux_riscv64'    && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'linux_mips64le'   && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'darwin_arm64'     && startsWith(inputs.os, 'macos')   ) ||
+          (matrix.job == 'darwin_x64'       && startsWith(inputs.os, 'macos')   ) ||
+          (matrix.job == 'darwin_universal' && startsWith(inputs.os, 'macos')   ) ||
+          (matrix.job == 'windows_x64'      && startsWith(inputs.os, 'windows') )  )
+        shell: bash
         run: |
-          artifact_filename="fortify-darwin-x86_64"
-          GOARCH=amd64 GOOS=darwin CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -v -o ./${artifact_filename}
-          file ./${artifact_filename}
-          echo "ArtifactFilename=$artifact_filename" >> $GITHUB_ENV
+          source cidoer.sh
+          do_workflow_job test
+          do_workflow_job build_${{ matrix.job }}
+          echo "ArtifactFilename=${ARTIFACT_FILENAME:-}" >> $GITHUB_ENV
 
-      - name: Upload Darwin X64
-        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
-        uses: actions/upload-artifact@v4
-        with:
-          retention-days: 3
-          name: ${{ env.ArtifactFilename }}
-          path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
-
-      - name: Create Darwin Universal Binary
-        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
-        run: |
-          universal_filename="fortify-darwin-universal"
-          lipo -create -output ${universal_filename} fortify-darwin-x86_64 fortify-darwin-arm64
-          file ${universal_filename}
-          echo "ArtifactFilename=${universal_filename}" >> $GITHUB_ENV
-
-      - name: Upload Darwin Universal Binary
-        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
+      - name: Upload Artifact
+        if: |
+          env.ArtifactTag != 'v0' && (
+          (matrix.job == 'linux_x64'        && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'linux_aarch64'    && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'linux_riscv64'    && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'linux_mips64le'   && startsWith(inputs.os, 'ubuntu')  ) ||
+          (matrix.job == 'darwin_arm64'     && startsWith(inputs.os, 'macos')   ) ||
+          (matrix.job == 'darwin_x64'       && startsWith(inputs.os, 'macos')   ) ||
+          (matrix.job == 'darwin_universal' && startsWith(inputs.os, 'macos')   ) ||
+          (matrix.job == 'windows_x64'      && startsWith(inputs.os, 'windows') )  )
         uses: actions/upload-artifact@v4
         with:
           retention-days: 3
