@@ -126,14 +126,14 @@ define_custom_build_linux_mips64le() {
 
 define_custom_build_windows_x64() {
   build_windows_x64_custom_do() {
-    export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-x86_64"
+    export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-x86_64.exe"
     build_artifact windows amd64
   }
 }
 
 define_custom_build_windows_aarch64() {
   build_windows_aarch64_custom_do() {
-    export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-aarch64"
+    export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-aarch64.exe"
     build_artifact windows arm64
   }
 }
