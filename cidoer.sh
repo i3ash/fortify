@@ -76,8 +76,11 @@ define_custom_build_darwin_universal() {
   }
   build_darwin_universal_custom_do() {
     local out="${OUT_DIR:-.}/${ARTIFACT_FILENAME}"
-    lipo -create -output "$out" "${OUT_DIR:-.}/${ARTIFACT_CMD}-darwin-x86_64" "${OUT_DIR:-.}/${ARTIFACT_CMD}-darwin-arm64"
+    local cmd1="${ARTIFACT_DARWIN_X64:-$(printf '%s' "${OUT_DIR:-.}/${ARTIFACT_CMD}-darwin-x86_64")}"
+    local cmd2="${ARTIFACT_DARWIN_A64:-$(printf '%s' "${OUT_DIR:-.}/${ARTIFACT_CMD}-darwin-arm64")}"
+    lipo -create -output "$out" "$cmd1" "$cmd2"
     file "$out"
+    chmod u+x "$out"
     do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
   }
 }

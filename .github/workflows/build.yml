@@ -10,13 +10,13 @@ on:
       go-version: { type: string, required: true, description: "Version of Go" }
   workflow_dispatch:
     inputs:
-      os: { type: string, default: 'ubuntu-latest', description: "Name of the OS that jobs run on" }
+      os: { type: string, default: 'ubuntu-24.04', description: "Name of the OS that jobs run on" }
       go-version: { type: string, default: '1.22', description: "Version of Go" }
 
 jobs:
   set-matrix:
     name: "Set Up Job Matrix"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix-os-type: ${{ steps.generate-matrix.outputs.matrix-os-type }}
       matrix-jobs: ${{ steps.generate-matrix.outputs.matrix-jobs }}
@@ -31,7 +31,7 @@ jobs:
             echo '["x64","aarch64","riscv64","mips64le"]' > matrix.json
           elif [[ "$OS" == macos* ]]; then
             echo '["darwin"]' > matrix_os.json
-            echo '["arm64","x64","universal"]' > matrix.json
+            echo '["arm64","x64"]' > matrix.json
           elif [[ "$OS" == windows* ]]; then
             echo '["windows"]' > matrix_os.json
             echo '["x64","aarch64"]' > matrix.json
@@ -95,15 +95,27 @@ jobs:
           retention-days: 3
           name: ${{ env.ArtifactFilename }}
           path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
-
-      - name: Build Darwin Universal Binary
-        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
+  build-darwin-universal:
+    name: "Build Darwin Universal"
+    needs: [build-and-upload]
+    if: startsWith(inputs.os || '', 'macos')
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: /tmp/artifacts, pattern: '*' }
+      - run: ls -lhAR /tmp/artifacts
+      - uses: i3ash/cidoer@main
+        with: { ref: main }
+      - name: Build Darwin Universal
+        shell: bash
         run: |
+          export ARTIFACT_DARWIN_X64='/tmp/artifacts/fortify-darwin-x86_64/fortify-darwin-x86_64'
+          export ARTIFACT_DARWIN_A64='/tmp/artifacts/fortify-darwin-arm64/fortify-darwin-arm64'
           source cidoer.sh
           do_workflow_job build_darwin_universal
           echo "ArtifactFilename=${ARTIFACT_FILENAME:-}" >> $GITHUB_ENV
-      - name: Upload Darwin Universal Binary
-        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
+      - name: Upload Darwin Universal
         uses: actions/upload-artifact@v4
         with:
           retention-days: 3
