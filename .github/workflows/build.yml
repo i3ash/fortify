@@ -14,20 +14,41 @@ on:
       go-version: { type: string, default: '1.22', description: "Version of Go" }
 
 jobs:
+  set-matrix:
+    name: "Set Up Job Matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix-os-type: ${{ steps.generate-matrix.outputs.matrix-os-type }}
+      matrix-jobs: ${{ steps.generate-matrix.outputs.matrix-jobs }}
+    steps:
+      - name: Generate Matrix
+        id: generate-matrix
+        shell: bash
+        run: |
+          OS="${{ inputs.os }}"
+          if [[ "$OS" == ubuntu* ]]; then
+            echo '["linux"]' > matrix_os.json
+            echo '["x64","aarch64","riscv64","mips64le"]' > matrix.json
+          elif [[ "$OS" == macos* ]]; then
+            echo '["darwin"]' > matrix_os.json
+            echo '["arm64","x64","universal"]' > matrix.json
+          elif [[ "$OS" == windows* ]]; then
+            echo '["windows"]' > matrix_os.json
+            echo '["x64","aarch64"]' > matrix.json
+          else
+            echo '[]' > matrix_os.json
+            echo '[]' > matrix.json
+          fi
+          echo "matrix-os-type=$(cat matrix_os.json)" >> $GITHUB_OUTPUT
+          echo "matrix-jobs=$(cat matrix.json)" >> $GITHUB_OUTPUT
   build-and-upload:
     name: "Build & Upload"
+    needs: set-matrix
     runs-on: ${{ inputs.os }}
     strategy:
       matrix:
-        job:
-          - linux_x64
-          - linux_aarch64
-          - linux_riscv64
-          - linux_mips64le
-          - darwin_arm64
-          - darwin_x64
-          - darwin_universal
-          - windows_x64
+        os-type: ${{ fromJson(needs.set-matrix.outputs['matrix-os-type']) }}
+        job: ${{ fromJson(needs.set-matrix.outputs['matrix-jobs']) }}
     steps:
       - name: Checkout code for tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -60,35 +81,29 @@ jobs:
           do_workflow_job prepare
           echo "ArtifactTag=${ARTIFACT_TAG:-}" >> $GITHUB_ENV
 
-      - name: Run ${{ matrix.job }}
-        if: |
-          (
-          (matrix.job == 'linux_x64'        && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'linux_aarch64'    && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'linux_riscv64'    && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'linux_mips64le'   && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'darwin_arm64'     && startsWith(inputs.os, 'macos')   ) ||
-          (matrix.job == 'darwin_x64'       && startsWith(inputs.os, 'macos')   ) ||
-          (matrix.job == 'darwin_universal' && startsWith(inputs.os, 'macos')   ) ||
-          (matrix.job == 'windows_x64'      && startsWith(inputs.os, 'windows') )  )
+      - name: Build ${{ matrix.job }} on ${{ matrix.os-type }}
         shell: bash
         run: |
           source cidoer.sh
           do_workflow_job test
-          do_workflow_job build_${{ matrix.job }}
+          do_workflow_job build_${{ matrix.os-type }}_${{ matrix.job }}
           echo "ArtifactFilename=${ARTIFACT_FILENAME:-}" >> $GITHUB_ENV
-
       - name: Upload Artifact
-        if: |
-          env.ArtifactTag != 'v0' && (
-          (matrix.job == 'linux_x64'        && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'linux_aarch64'    && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'linux_riscv64'    && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'linux_mips64le'   && startsWith(inputs.os, 'ubuntu')  ) ||
-          (matrix.job == 'darwin_arm64'     && startsWith(inputs.os, 'macos')   ) ||
-          (matrix.job == 'darwin_x64'       && startsWith(inputs.os, 'macos')   ) ||
-          (matrix.job == 'darwin_universal' && startsWith(inputs.os, 'macos')   ) ||
-          (matrix.job == 'windows_x64'      && startsWith(inputs.os, 'windows') )  )
+        if: env.ArtifactTag != 'v0'
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 3
+          name: ${{ env.ArtifactFilename }}
+          path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
+
+      - name: Build Darwin Universal Binary
+        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
+        run: |
+          source cidoer.sh
+          do_workflow_job build_darwin_universal
+          echo "ArtifactFilename=${ARTIFACT_FILENAME:-}" >> $GITHUB_ENV
+      - name: Upload Darwin Universal Binary
+        if: env.ArtifactTag != 'v0' && startsWith(inputs.os, 'macos')
         uses: actions/upload-artifact@v4
         with:
           retention-days: 3
