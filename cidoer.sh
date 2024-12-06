@@ -138,9 +138,9 @@ define_custom_build_darwin_universal() {
     file "$out"
     do_print_dash_pair 'ARTIFACT_OUT' "$out"
     do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
+    chmod +x "$out"
   }
 }
-
 
 define_custom_docker_debian() {
   docker_debian_custom_do() {
