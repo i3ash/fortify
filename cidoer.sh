@@ -39,7 +39,9 @@ define_custom_prepare() {
     tag=$(do_git_version_tag)
     count=$(do_git_count_commits_since "$tag")
     hash=$(do_git_short_commit_hash)
-    printf '%s+%s-%s' "$tag" "$count" "$hash"
+    if [ "$count" -gt 0 ]; then
+      printf '%s+%s-%s' "$tag" "$count" "$hash"
+    else printf '%s' "$tag"; fi
   }
   check_go() {
     if ! command -v go &>/dev/null; then
