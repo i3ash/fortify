@@ -24,18 +24,18 @@ setup_cidoer() {
 
 if [ -f '.cidoer/cidoer.core.sh' ];then
   source .cidoer/cidoer.core.sh
-else setup_cidoer '1.0';  fi
+else setup_cidoer '1.0.1';  fi
 
 declare -rx ARTIFACT_CMD='fortify'
 
-define_custom_test() {
-  test_custom_do() {
+define_test() {
+  test_do() {
     go test -v ./...
   }
 }
 
-define_custom_prepare() {
-  prepare_custom_do() {
+define_prepare() {
+  prepare_do() {
     local tag
     tag=$(custom_version_tag)
     export ARTIFACT_TAG="$tag"
@@ -74,61 +74,61 @@ build_artifact() {
   do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
 }
 
-define_custom_build_linux_x64() {
-  build_linux_x64_custom_do() {
+define_build_linux_x64() {
+  build_linux_x64_do() {
     export ARTIFACT_FILENAME="$ARTIFACT_CMD-linux-x86_64"
     build_artifact linux amd64
   }
 }
 
-define_custom_build_linux_aarch64() {
-  build_linux_aarch64_custom_do() {
+define_build_linux_aarch64() {
+  build_linux_aarch64_do() {
     export ARTIFACT_FILENAME="$ARTIFACT_CMD-linux-aarch64"
     build_artifact linux arm64
   }
 }
 
-define_custom_build_linux_riscv64() {
-  build_linux_riscv64_custom_do() {
+define_build_linux_riscv64() {
+  build_linux_riscv64_do() {
     build_artifact linux riscv64
   }
 }
 
-define_custom_build_linux_mips64le() {
-  build_linux_mips64le_custom_do() {
+define_build_linux_mips64le() {
+  build_linux_mips64le_do() {
     build_artifact linux mips64le
   }
 }
 
-define_custom_build_windows_x64() {
-  build_windows_x64_custom_do() {
+define_build_windows_x64() {
+  build_windows_x64_do() {
     export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-x86_64.exe"
     build_artifact windows amd64
   }
 }
 
-define_custom_build_windows_aarch64() {
-  build_windows_aarch64_custom_do() {
+define_build_windows_aarch64() {
+  build_windows_aarch64_do() {
     export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-aarch64.exe"
     build_artifact windows arm64
   }
 }
 
-define_custom_build_darwin_arm64() {
-  build_darwin_arm64_custom_do() {
+define_build_darwin_arm64() {
+  build_darwin_arm64_do() {
     build_artifact darwin arm64
   }
 }
 
-define_custom_build_darwin_x64() {
-  build_darwin_x64_custom_do() {
+define_build_darwin_x64() {
+  build_darwin_x64_do() {
     export ARTIFACT_FILENAME="$ARTIFACT_CMD-darwin-x86_64"
     build_artifact darwin amd64
   }
 }
 
-define_custom_build_darwin_universal() {
-  build_darwin_universal_custom_do() {
+define_build_darwin_universal() {
+  build_darwin_universal_do() {
     export ARTIFACT_FILENAME="${ARTIFACT_CMD}-darwin-universal"
     do_print_dash_pair 'ARTIFACT_FILENAME' "$ARTIFACT_FILENAME"
     local out="${OUT_DIR:-.}/${ARTIFACT_FILENAME}"
@@ -142,8 +142,8 @@ define_custom_build_darwin_universal() {
   }
 }
 
-define_custom_docker_debian() {
-  docker_debian_custom_do() {
+define_docker_debian() {
+  docker_debian_do() {
     local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
     if [ "$LATEST_TAG" = "true" ]; then
       tags+=(--tag "$DOCKER_IMAGE:debian")
@@ -154,8 +154,8 @@ define_custom_docker_debian() {
   }
 }
 
-define_custom_docker_alpine() {
-  docker_alpine_custom_do() {
+define_docker_alpine() {
+  docker_alpine_do() {
     local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
     if [ "$LATEST_TAG" = "true" ]; then
       tags+=(--tag "$DOCKER_IMAGE:alpine")
@@ -166,8 +166,8 @@ define_custom_docker_alpine() {
   }
 }
 
-define_custom_docker_minimal() {
-  docker_minimal_custom_do() {
+define_docker_minimal() {
+  docker_minimal_do() {
     local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
     if [ "$LATEST_TAG" = "true" ]; then
       tags+=(--tag "$DOCKER_IMAGE:latest")

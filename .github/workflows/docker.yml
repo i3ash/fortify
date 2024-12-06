@@ -22,8 +22,9 @@ jobs:
           fetch-depth: 30
           fetch-tags: true
 
-      - uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0' }
+      - name: Setup CIDoer
+        uses: i3ash/setup-cidoer@v1
+        with: { ref: '1.0.1' }
 
       - name: Prepare
         shell: bash
