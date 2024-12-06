@@ -3,7 +3,7 @@ name: Docker Build
 on:
   workflow_dispatch:
     inputs:
-      os: { type: string, default: 'ubuntu-latest', description: "Name of the OS that jobs run on" }
+      os: { type: string, default: 'ubuntu-24.04', description: "Name of the OS that jobs run on" }
       out-docker-image: { type: string, default: 'fortify', description: "Name of output docker image" }
       out-docker-latest: { type: boolean, default: false, description: "If build docker image with the latest tag" }
   workflow_call:
@@ -20,33 +20,17 @@ jobs:
         with:
           submodules: 'true'
           fetch-depth: 30
+          fetch-tags: true
 
-      - name: Setup Variables
-        if: ${{ ! startsWith(inputs.os, 'windows') }}
+      - uses: i3ash/setup-cidoer@v1
+        with: { ref: '1.0' }
+
+      - name: Prepare
+        shell: bash
         run: |
-          git_version_tag() {
-            git fetch --tags
-            local exact_tag
-            exact_tag=$(git describe --tags --exact-match 2>/dev/null || echo '')
-            if [ -n "$exact_tag" ]; then
-              echo "$exact_tag"
-            else
-              local latest_tag
-              latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo 'v0')
-              local latest_commit
-              latest_commit=$(git rev-parse --short=7 HEAD)
-              echo "$latest_tag-$latest_commit"
-            fi
-          }
-          tag=$(git_version_tag)
-          system=$(uname -s | tr '[:upper:]' '[:lower:]')
-          architecture=$(uname -m | tr '[:upper:]' '[:lower:]' | sed 's/amd64/x86_64/g')
-          artifact_filename="${{ inputs.out-docker-image }}-${system}-${architecture}"
-          echo "ArtifactTag=$tag" >> $GITHUB_ENV
-          echo "ArtifactFilename=$artifact_filename" >> $GITHUB_ENV
-          sed -e "s|#VERSION|${tag}|g" < "cmd/version.go-e" > "cmd/version.go"
-          echo "Artifact Version:  $tag"
-          echo "Artifact Filename: $artifact_filename"
+          source cidoer.sh
+          do_workflow_job prepare
+          echo "ArtifactTag=${ARTIFACT_TAG:-}" >> $GITHUB_ENV
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v3
@@ -70,13 +54,8 @@ jobs:
           ARTIFACT_TAG: ${{ env.ArtifactTag }}-debian
           LATEST_TAG: ${{ inputs.out-docker-latest }}
         run: |
-          TAGS="--tag $DOCKER_IMAGE:$ARTIFACT_TAG"
-          if [ "$LATEST_TAG" = "true" ]; then
-            TAGS="$TAGS --tag $DOCKER_IMAGE:debian"
-          fi
-          docker buildx build $TAGS \
-            --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v5,linux/386,linux/ppc64le,linux/s390x,linux/mips64le \
-            --target debian --push .
+          source cidoer.sh
+          do_workflow_job docker_debian
 
       - name: Build and Push Docker Images - Alpine
         if: env.ArtifactTag != 'v0'
@@ -86,13 +65,8 @@ jobs:
           ARTIFACT_TAG: ${{ env.ArtifactTag }}-alpine
           LATEST_TAG: ${{ inputs.out-docker-latest }}
         run: |
-          TAGS="--tag $DOCKER_IMAGE:$ARTIFACT_TAG"
-          if [ "$LATEST_TAG" = "true" ]; then
-            TAGS="$TAGS --tag $DOCKER_IMAGE:alpine"
-          fi
-          docker buildx build $TAGS \
-            --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/ppc64le,linux/s390x,linux/riscv64 \
-            --target alpine --push .
+          source cidoer.sh
+          do_workflow_job docker_alpine
 
       - name: Build and Push Docker Images - Minimal
         if: env.ArtifactTag != 'v0'
@@ -102,13 +76,8 @@ jobs:
           ARTIFACT_TAG: ${{ env.ArtifactTag }}
           LATEST_TAG: ${{ inputs.out-docker-latest }}
         run: |
-          TAGS="--tag $DOCKER_IMAGE:$ARTIFACT_TAG"
-          if [ "$LATEST_TAG" = "true" ]; then
-            TAGS="$TAGS --tag $DOCKER_IMAGE:latest"
-          fi
-          docker buildx build $TAGS \
-            --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/ppc64le,linux/s390x,linux/riscv64 \
-            --target minimal --push .
+          source cidoer.sh
+          do_workflow_job docker_minimal
 
 ## --------------------
-## 241010
+## 241206

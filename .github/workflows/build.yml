@@ -15,7 +15,7 @@ on:
 
 jobs:
   set-matrix:
-    name: "Set Up Job Matrix"
+    name: "Setup Job Matrix"
     runs-on: ubuntu-24.04
     outputs:
       matrix-os-type: ${{ steps.generate-matrix.outputs.matrix-os-type }}
@@ -65,14 +65,13 @@ jobs:
           fetch-depth: 20
           fetch-tags: true
 
-      - name: Setup CIDoer
-        uses: i3ash/cidoer@main
-        with: { ref: main }
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
+
+      - name: Setup CIDoer
+        uses: i3ash/setup-cidoer@v1
+        with: { ref: '1.0' }
 
       - name: Prepare
         shell: bash
@@ -105,8 +104,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { path: /tmp/artifacts, pattern: '*' }
       - run: ls -lhAR /tmp/artifacts
-      - uses: i3ash/cidoer@main
-        with: { ref: main }
+
+      - name: Setup CIDoer
+        uses: i3ash/setup-cidoer@v1
+        with: { ref: '1.0' }
+
       - name: Build Darwin Universal
         shell: bash
         run: |
