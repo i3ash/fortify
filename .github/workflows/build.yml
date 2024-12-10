@@ -28,13 +28,13 @@ jobs:
           OS="${{ inputs.os }}"
           if [[ "$OS" == ubuntu* ]]; then
             echo '["linux"]' > matrix_os.json
-            echo '["x64","aarch64","riscv64","mips64le"]' > matrix.json
+            echo '["x64","arm64","riscv64","mips64le"]' > matrix.json
           elif [[ "$OS" == macos* ]]; then
             echo '["darwin"]' > matrix_os.json
             echo '["arm64","x64"]' > matrix.json
           elif [[ "$OS" == windows* ]]; then
             echo '["windows"]' > matrix_os.json
-            echo '["x64","aarch64"]' > matrix.json
+            echo '["x64","arm64"]' > matrix.json
           else
             echo '[]' > matrix_os.json
             echo '[]' > matrix.json
@@ -71,7 +71,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.1' }
+        with: { ref: '1.0.2' }
 
       - name: Prepare
         shell: bash
@@ -107,7 +107,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.1' }
+        with: { ref: '1.0.2' }
 
       - name: Build Darwin Universal
         shell: bash

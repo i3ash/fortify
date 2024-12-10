@@ -14,17 +14,13 @@ setup_cidoer() {
   mv "cidoer-$ref" "$dir"
   ls -lhAR "$dir"
   path="$(pwd)"/"$dir"
-  source "$path"/cidoer.core.sh
   export CIDOER_DIR="$path"
   export CIDOER_CORE_FILE="$path/cidoer.core.sh"
-  do_print_section FINISHED
-  uname -a || print 'uname error'
-  do_print_dash_pair 'CIDOER_OS_TYPE' "$(do_os_type)"
 }
 
 if [ -f '.cidoer/cidoer.core.sh' ];then
   source .cidoer/cidoer.core.sh
-else setup_cidoer '1.0.1';  fi
+else setup_cidoer '1.0.2';  fi
 
 declare -rx ARTIFACT_CMD='fortify'
 
@@ -71,7 +67,9 @@ build_artifact() {
   GOARCH=$arch GOOS=$os CGO_ENABLED=0 go build -a -installsuffix nocgo -ldflags '-s -w' -o "$out"
   file "$out"
   do_print_dash_pair 'ARTIFACT_OUT' "$out"
-  do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
+  if [ 'darwin' = "$(do_os_type)" ] || [[ "${ARTIFACT_FILENAME:-}" == *"$(do_host_type)"* ]]; then
+    do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
+  fi
 }
 
 define_build_linux_x64() {
@@ -81,9 +79,8 @@ define_build_linux_x64() {
   }
 }
 
-define_build_linux_aarch64() {
-  build_linux_aarch64_do() {
-    export ARTIFACT_FILENAME="$ARTIFACT_CMD-linux-aarch64"
+define_build_linux_arm64() {
+  build_linux_arm64_do() {
     build_artifact linux arm64
   }
 }
@@ -107,9 +104,9 @@ define_build_windows_x64() {
   }
 }
 
-define_build_windows_aarch64() {
-  build_windows_aarch64_do() {
-    export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-aarch64.exe"
+define_build_windows_arm64() {
+  build_windows_arm64_do() {
+    export ARTIFACT_FILENAME="$ARTIFACT_CMD-windows-arm64.exe"
     build_artifact windows arm64
   }
 }
@@ -136,9 +133,9 @@ define_build_darwin_universal() {
     local cmd2="${ARTIFACT_DARWIN_A64:-$(printf '%s' "${OUT_DIR:-.}/${ARTIFACT_CMD}-darwin-arm64")}"
     lipo -create -output "$out" "$cmd1" "$cmd2"
     file "$out"
+    chmod +x "$out"
     do_print_dash_pair 'ARTIFACT_OUT' "$out"
     do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
-    chmod +x "$out"
   }
 }
 
