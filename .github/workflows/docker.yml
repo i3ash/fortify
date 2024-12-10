@@ -16,10 +16,19 @@ jobs:
   build-and-upload:
     runs-on: ${{ inputs.os }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout for tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/checkout@v4
         with:
           submodules: 'true'
-          fetch-depth: 30
+          fetch-depth: 1
+          fetch-tags: false
+      - name: Checkout for branch
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+          fetch-depth: 20
           fetch-tags: true
 
       - name: Setup CIDoer
