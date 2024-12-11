@@ -182,7 +182,7 @@ define_docker_minimal() {
       tags+=(--tag "$DOCKER_IMAGE:latest")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
       --target minimal --push .
   }
 }
