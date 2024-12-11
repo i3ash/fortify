@@ -20,7 +20,7 @@ setup_cidoer() {
 
 if [ -f '.cidoer/cidoer.core.sh' ];then
   source .cidoer/cidoer.core.sh
-else setup_cidoer '1.0.2';  fi
+else setup_cidoer '1.0.3';  fi
 
 declare -rx ARTIFACT_CMD='fortify'
 

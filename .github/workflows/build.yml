@@ -71,7 +71,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.2' }
+        with: { ref: '1.0.3' }
 
       - name: Prepare
         shell: bash
@@ -107,7 +107,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.2' }
+        with: { ref: '1.0.3' }
 
       - name: Build Darwin Universal
         shell: bash
