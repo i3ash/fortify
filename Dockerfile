@@ -16,7 +16,12 @@ WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS alpine
+FROM --platform=$BUILDPLATFORM busybox:stable-glibc AS busybox
+WORKDIR /root
+COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
+ENTRYPOINT ["fortify"]
+
+FROM --platform=$BUILDPLATFORM alpine:3.21 AS alpine
 WORKDIR /root
 RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/

@@ -40,7 +40,7 @@ jobs:
         run: |
           source cidoer.sh
           do_workflow_job prepare
-          echo "ArtifactTag=${ARTIFACT_TAG:-}" >> $GITHUB_ENV
+          echo "ArtifactTag=${ARTIFACT_TAG:-v0}" >> $GITHUB_ENV
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v3
@@ -78,6 +78,17 @@ jobs:
           source cidoer.sh
           do_workflow_job docker_alpine
 
+      - name: Build and Push Docker Images - Busybox
+        if: env.ArtifactTag != 'v0'
+        working-directory: '${{ github.workspace }}'
+        env:
+          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
+          ARTIFACT_TAG: ${{ env.ArtifactTag }}-busybox
+          LATEST_TAG: ${{ inputs.out-docker-latest }}
+        run: |
+          source cidoer.sh
+          do_workflow_job docker_busybox
+
       - name: Build and Push Docker Images - Minimal
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
@@ -90,4 +101,4 @@ jobs:
           do_workflow_job docker_minimal
 
 ## --------------------
-## 241206
+## 241211

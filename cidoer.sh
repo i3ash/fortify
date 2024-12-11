@@ -146,7 +146,7 @@ define_docker_debian() {
       tags+=(--tag "$DOCKER_IMAGE:debian")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v5,linux/386,linux/ppc64le,linux/s390x,linux/mips64le \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/s390x \
       --target debian --push .
   }
 }
@@ -158,8 +158,20 @@ define_docker_alpine() {
       tags+=(--tag "$DOCKER_IMAGE:alpine")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/ppc64le,linux/s390x,linux/riscv64 \
+      --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/riscv64,linux/s390x \
       --target alpine --push .
+  }
+}
+
+define_docker_busybox() {
+  docker_busybox_do() {
+    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
+    if [ "$LATEST_TAG" = "true" ]; then
+      tags+=(--tag "$DOCKER_IMAGE:busybox")
+    fi
+    docker buildx build "${tags[@]}" \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
+      --target busybox --push .
   }
 }
 
@@ -170,7 +182,7 @@ define_docker_minimal() {
       tags+=(--tag "$DOCKER_IMAGE:latest")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/amd64,linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/ppc64le,linux/s390x,linux/riscv64 \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
       --target minimal --push .
   }
 }
