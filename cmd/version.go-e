@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const Version = "#VERSION"
+const Version = "<ARTIFACT_TAG>"
 
 func init() {
 	root.AddCommand(&cobra.Command{

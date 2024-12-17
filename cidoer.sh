@@ -18,9 +18,10 @@ setup_cidoer() {
   export CIDOER_CORE_FILE="$path/cidoer.core.sh"
 }
 
-if [ -f '.cidoer/cidoer.core.sh' ];then
-  source .cidoer/cidoer.core.sh
-else setup_cidoer '1.0.3';  fi
+if [ ! -f '.cidoer/cidoer.core.sh' ]; then
+  setup_cidoer '1.0.4'
+fi
+source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
 
@@ -36,7 +37,7 @@ define_prepare() {
     tag=$(custom_version_tag)
     export ARTIFACT_TAG="$tag"
     do_print_dash_pair 'ARTIFACT_TAG' "$ARTIFACT_TAG"
-    sed -e "s|#VERSION|${tag}|g" < "cmd/version.go-e" > "cmd/version.go"
+    do_replace \< \> <cmd/version.go-e >cmd/version.go
     check_go
   }
   custom_version_tag() {
