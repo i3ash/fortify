@@ -16,6 +16,8 @@ cleanup() {
 }
 cleanup
 
+declare -rx DO_NOT_REPLACE_VERSION='yes'
+
 source cidoer.sh
 do_workflow_job prepare
 

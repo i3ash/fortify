@@ -2,24 +2,8 @@
 # shellcheck disable=SC2317
 set -eou pipefail
 
-setup_cidoer() {
-  local ref="${1:-main}" dir="${2:-.cidoer}" path
-  local archive_url="https://github.com/i3ash/cidoer/archive/$ref.zip"
-  printf '%s%s\n' 'Downloading:' "$archive_url"
-  curl -fsSL "$archive_url" -o source.zip
-  printf '%s%s\n' 'Extracting:' "$(pwd)"
-  unzip -q source.zip -d "$(pwd)"
-  rm source.zip
-  rm -rf "$(pwd)"/"${dir:?}"
-  mv "cidoer-$ref" "$dir"
-  ls -lhAR "$dir"
-  path="$(pwd)"/"$dir"
-  export CIDOER_DIR="$path"
-  export CIDOER_CORE_FILE="$path/cidoer.core.sh"
-}
-
-if [ ! -f '.cidoer/cidoer.core.sh' ]; then
-  setup_cidoer '1.0.4'
+if [ ! -f .cidoer/cidoer.core.sh ]; then
+  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.4'
 fi
 source .cidoer/cidoer.core.sh
 
@@ -37,7 +21,10 @@ define_prepare() {
     tag=$(custom_version_tag)
     export ARTIFACT_TAG="$tag"
     do_print_dash_pair 'ARTIFACT_TAG' "$ARTIFACT_TAG"
-    do_replace \< \> <cmd/version.go-e >cmd/version.go
+    do_print_dash_pair 'DO_NOT_REPLACE_VERSION' "${DO_NOT_REPLACE_VERSION:-}"
+    if [ 'yes' != "${DO_NOT_REPLACE_VERSION:-}" ]; then
+      do_replace \< \> <cmd/version.go-e >cmd/version.go
+    fi
     check_go
   }
   custom_version_tag() {
