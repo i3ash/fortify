@@ -16,10 +16,17 @@ var ssss = &cobra.Command{Use: "sss", Short: "Shamir's secret sharing"}
 
 func init() {
 	root.AddCommand(ssss)
+	root.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Print version of the command",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(Version)
+		},
+	})
 }
 
 func newFortifier(
-	kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
+		kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
 ) (*fortifier.Fortifier, []string, error) {
 	switch kind {
 	case fortifier.CipherKeyKindSSS:
