@@ -3,7 +3,7 @@
 set -eou pipefail
 
 if [ ! -f .cidoer/cidoer.core.sh ]; then
-  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.4'
+  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.5'
 fi
 source .cidoer/cidoer.core.sh
 
@@ -23,7 +23,7 @@ define_prepare() {
     do_print_dash_pair 'ARTIFACT_TAG' "$ARTIFACT_TAG"
     do_print_dash_pair 'DO_NOT_REPLACE_VERSION' "${DO_NOT_REPLACE_VERSION:-}"
     if [ 'yes' != "${DO_NOT_REPLACE_VERSION:-}" ]; then
-      do_replace \< \> <cmd/version.go-e >cmd/version.go
+      do_file_replace \< \> <cmd/version.go-e >cmd/version.go
     fi
     check_go
   }
