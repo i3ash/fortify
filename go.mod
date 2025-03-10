@@ -1,7 +1,6 @@
 module github.com/i3ash/fortify
 
-go 1.22
-toolchain go1.23.6
+go 1.23.0
 
 require (
 	github.com/spf13/cobra v1.9.1
