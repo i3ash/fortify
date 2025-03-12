@@ -15,13 +15,18 @@ define_test() {
 
 define_prepare() {
   prepare_do() {
+    do_print_dash_pair "${FUNCNAME[0]}"
     local -r tag="$(do_git_version_next)" && export ARTIFACT_TAG="$tag"
-    do_print_dash_pair 'ARTIFACT_TAG' "$ARTIFACT_TAG"
-    do_print_dash_pair 'DO_NOT_REPLACE_VERSION' "${DO_NOT_REPLACE_VERSION:-}"
-    if [ 'yes' != "${DO_NOT_REPLACE_VERSION:-}" ]; then
-      do_file_replace \< \> <cmd/version.go-e >cmd/version.go
+    if do_git_diff; then
+      local -r COMMIT_HASH="$(do_git_short_commit_hash)"
+    else
+      local -r COMMIT_HASH="-"
     fi
+    do_print_dash_pair 'ARTIFACT_TAG' "${ARTIFACT_TAG-}"
+    do_print_dash_pair 'COMMIT_HASH' "${COMMIT_HASH-}"
+    replace_version_file
     check_go
+    do_print_trace "$(do_stack_trace)" done!
   }
   check_go() {
     if ! command -v go &>/dev/null; then
@@ -30,6 +35,17 @@ define_prepare() {
     fi
     printf "Check: " >&1
     which go >&1
+  }
+  replace_version_file() {
+    do_print_dash_pair "${FUNCNAME[0]}"
+    [ -z "${ARTIFACT_TAG-}" ] && return 0
+    pushd cmd >/dev/null || return 0
+    [ -f version ] && {
+      do_file_replace \< \> <version >version.go
+      do_print_code_lines 'go' "$(cat version.go)"
+    }
+    popd >/dev/null || :
+    do_print_trace "$(do_stack_trace)" done!
   }
 }
 

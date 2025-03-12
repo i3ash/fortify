@@ -1,3 +1,6 @@
 package cmd
 
-const Version = "v1.0.x"
+const (
+	Version    = "1.1"
+	CommitHash = "-"
+)

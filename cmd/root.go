@@ -20,13 +20,13 @@ func init() {
 		Use:   "version",
 		Short: "Print version of the command",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(Version)
+			fmt.Printf("%s\n", VersionString())
 		},
 	})
 }
 
 func newFortifier(
-		kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
+	kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
 ) (*fortifier.Fortifier, []string, error) {
 	switch kind {
 	case fortifier.CipherKeyKindSSS:
@@ -61,4 +61,12 @@ func readKeyFile(args []string) (kb []byte, err error) {
 		return
 	}
 	return
+}
+
+func VersionString() string {
+	commit := fmt.Sprintf("%s", CommitHash)
+	if commit == "-" {
+		return fmt.Sprintf("%s", Version)
+	}
+	return fmt.Sprintf("%s (%s)", Version, CommitHash)
 }
