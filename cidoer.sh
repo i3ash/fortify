@@ -2,7 +2,7 @@
 # shellcheck disable=SC2317
 set -eu -o pipefail
 
-[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.8'
+[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- 'stable/1.0'
 source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
