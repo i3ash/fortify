@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
-set -eou pipefail
+set -eu -o pipefail
 
-if [ ! -f .cidoer/cidoer.core.sh ]; then
-  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.6'
-fi
+[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.8'
 source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
@@ -17,24 +15,13 @@ define_test() {
 
 define_prepare() {
   prepare_do() {
-    local tag
-    tag=$(custom_version_tag)
-    export ARTIFACT_TAG="$tag"
+    local -r tag="$(do_git_version_next)" && export ARTIFACT_TAG="$tag"
     do_print_dash_pair 'ARTIFACT_TAG' "$ARTIFACT_TAG"
     do_print_dash_pair 'DO_NOT_REPLACE_VERSION' "${DO_NOT_REPLACE_VERSION:-}"
     if [ 'yes' != "${DO_NOT_REPLACE_VERSION:-}" ]; then
       do_file_replace \< \> <cmd/version.go-e >cmd/version.go
     fi
     check_go
-  }
-  custom_version_tag() {
-    local tag count hash
-    tag=$(do_git_version_tag)
-    count=$(do_git_count_commits_since "$tag")
-    hash=$(do_git_short_commit_hash)
-    if [ "$count" -gt 0 ]; then
-      printf '%s%s%s' "$tag" ".$count" "-$hash"
-    else printf '%s' "$tag"; fi
   }
   check_go() {
     if ! command -v go &>/dev/null; then
@@ -160,6 +147,18 @@ define_docker_busybox() {
     docker buildx build "${tags[@]}" \
       --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
       --target busybox --push .
+  }
+}
+
+define_docker_distroless() {
+  docker_distroless_do() {
+    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
+    if [ "$LATEST_TAG" = "true" ]; then
+      tags+=(--tag "$DOCKER_IMAGE:distroless")
+    fi
+    docker buildx build "${tags[@]}" \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
+      --target distroless --push .
   }
 }
 

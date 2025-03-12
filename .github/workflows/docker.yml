@@ -28,12 +28,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'true'
-          fetch-depth: 20
+          fetch-depth: 0
           fetch-tags: true
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.6' }
+        with: { ref: '1.0.8' }
 
       - name: Prepare
         shell: bash
@@ -56,16 +56,16 @@ jobs:
           docker system prune -af
           docker builder prune -af
 
-      - name: Build and Push Docker Images - Debian
-        if: env.ArtifactTag != 'v0'
-        working-directory: '${{ github.workspace }}'
-        env:
-          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
-          ARTIFACT_TAG: ${{ env.ArtifactTag }}-debian
-          LATEST_TAG: ${{ inputs.out-docker-latest }}
-        run: |
-          source cidoer.sh
-          do_workflow_job docker_debian
+#      - name: Build and Push Docker Images - Debian
+#        if: env.ArtifactTag != 'v0'
+#        working-directory: '${{ github.workspace }}'
+#        env:
+#          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
+#          ARTIFACT_TAG: ${{ env.ArtifactTag }}-debian
+#          LATEST_TAG: ${{ inputs.out-docker-latest }}
+#        run: |
+#          source cidoer.sh
+#          do_workflow_job docker_debian
 
       - name: Build and Push Docker Images - Alpine
         if: env.ArtifactTag != 'v0'
@@ -78,16 +78,27 @@ jobs:
           source cidoer.sh
           do_workflow_job docker_alpine
 
-      - name: Build and Push Docker Images - Busybox
+#      - name: Build and Push Docker Images - Busybox
+#        if: env.ArtifactTag != 'v0'
+#        working-directory: '${{ github.workspace }}'
+#        env:
+#          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
+#          ARTIFACT_TAG: ${{ env.ArtifactTag }}-busybox
+#          LATEST_TAG: ${{ inputs.out-docker-latest }}
+#        run: |
+#          source cidoer.sh
+#          do_workflow_job docker_busybox
+
+      - name: Build and Push Docker Images - Distroless
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
         env:
           DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
-          ARTIFACT_TAG: ${{ env.ArtifactTag }}-busybox
+          ARTIFACT_TAG: ${{ env.ArtifactTag }}-distroless
           LATEST_TAG: ${{ inputs.out-docker-latest }}
         run: |
           source cidoer.sh
-          do_workflow_job docker_busybox
+          do_workflow_job docker_distroless
 
       - name: Build and Push Docker Images - Minimal
         if: env.ArtifactTag != 'v0'
