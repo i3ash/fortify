@@ -16,7 +16,7 @@ WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM gcr.io/distroless/static-debian12:nonroot AS distroless
+FROM --platform=$BUILDPLATFORM gcr.io/distroless/static-debian12:latest AS distroless
 ENV PATH="/usr/local/bin"
 WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
