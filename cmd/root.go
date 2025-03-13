@@ -20,9 +20,7 @@ func init() {
 	root.AddCommand(cmdVersion())
 }
 
-func newFortifier(
-		kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
-) (*fortifier.Fortifier, []string, error) {
+func newFortifier(kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string) (*fortifier.Fortifier, []string, error) {
 	switch kind {
 	case fortifier.CipherKeyKindSSS:
 		if parts, err := sss.CombineKeyFiles(args); err != nil {
