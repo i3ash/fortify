@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
 set -eu -o pipefail
-
-[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- 'stable/1.0'
+[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.8'
 source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
@@ -15,31 +14,19 @@ define_test() {
 
 define_prepare() {
   prepare_do() {
+    prepare_version
+  }
+  prepare_version() {
     do_print_dash_pair "${FUNCNAME[0]}"
     local -r tag="$(do_git_version_next)" && export ARTIFACT_TAG="$tag"
     if do_git_diff; then
       local -r COMMIT_HASH="$(do_git_short_commit_hash)"
+      local -r BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
     else
       local -r COMMIT_HASH="-"
+      local -r BUILD_TIME=$(date -u '+%Y-%m-%d')
     fi
-    do_print_dash_pair 'ARTIFACT_TAG' "${ARTIFACT_TAG-}"
-    do_print_dash_pair 'COMMIT_HASH' "${COMMIT_HASH-}"
-    replace_version_file
-    check_go
-    do_print_trace "$(do_stack_trace)" done!
-  }
-  check_go() {
-    if ! command -v go &>/dev/null; then
-      echo "Error: Go language environment not found." >&2
-      exit 1
-    fi
-    printf "Check: " >&1
-    which go >&1
-  }
-  replace_version_file() {
-    do_print_dash_pair "${FUNCNAME[0]}"
-    [ -z "${ARTIFACT_TAG-}" ] && return 0
-    pushd cmd >/dev/null || return 0
+    pushd pkg/build >/dev/null || return 0
     [ -f version ] && {
       do_file_replace \< \> <version >version.go
       do_print_code_lines 'go' "$(cat version.go)"
@@ -117,6 +104,7 @@ define_build_darwin_x64() {
 
 define_build_darwin_universal() {
   build_darwin_universal_do() {
+    do_print_dash_pair "${FUNCNAME[0]}"
     export ARTIFACT_FILENAME="${ARTIFACT_CMD}-darwin-universal"
     do_print_dash_pair 'ARTIFACT_FILENAME' "$ARTIFACT_FILENAME"
     local out="${OUT_DIR:-.}/${ARTIFACT_FILENAME}"
@@ -127,6 +115,8 @@ define_build_darwin_universal() {
     chmod +x "$out"
     do_print_dash_pair 'ARTIFACT_OUT' "$out"
     do_print_dash_pair "ARTIFACT_VERSION" "$($out version)"
+    $out version -d
+    do_print_trace "$(do_stack_trace)" done!
   }
 }
 

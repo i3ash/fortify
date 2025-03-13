@@ -7,6 +7,7 @@ import (
 
 	"github.com/i3ash/fortify/files"
 	"github.com/i3ash/fortify/fortifier"
+	"github.com/i3ash/fortify/pkg/build"
 	"github.com/i3ash/fortify/sss"
 	"github.com/spf13/cobra"
 )
@@ -16,17 +17,11 @@ var ssss = &cobra.Command{Use: "sss", Short: "Shamir's secret sharing"}
 
 func init() {
 	root.AddCommand(ssss)
-	root.AddCommand(&cobra.Command{
-		Use:   "version",
-		Short: "Print version of the command",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("%s\n", VersionString())
-		},
-	})
+	root.AddCommand(cmdVersion())
 }
 
 func newFortifier(
-	kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
+		kind fortifier.CipherKeyKind, meta *fortifier.Metadata, args []string,
 ) (*fortifier.Fortifier, []string, error) {
 	switch kind {
 	case fortifier.CipherKeyKindSSS:
@@ -63,10 +58,23 @@ func readKeyFile(args []string) (kb []byte, err error) {
 	return
 }
 
-func VersionString() string {
-	commit := fmt.Sprintf("%s", CommitHash)
-	if commit == "-" {
-		return fmt.Sprintf("%s", Version)
+func cmdVersion() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print version of the command",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			detailed, err := cmd.Flags().GetBool("detail")
+			if err != nil {
+				return err
+			}
+			if detailed {
+				build.PrintBuildInfo()
+			} else {
+				build.PrintVersion()
+			}
+			return nil
+		},
 	}
-	return fmt.Sprintf("%s (%s)", Version, CommitHash)
+	cmd.Flags().BoolP("detail", "d", false, "Print detailed build information")
+	return cmd
 }
