@@ -23,7 +23,7 @@ bash build.sh
 After building, execute the following commands to confirm the result:
 
 ```shell
-pushd build && ./fortify -h && ./fortify version; popd
+pushd build && ./fortify -h && ./fortify version -d; popd
 ```
 
 ## Shamir's Secret Sharing (SSS)
@@ -115,10 +115,7 @@ pushd build/rsa && ../fortify encrypt -i ../fortify -k rsa -vT ../../debug/key_r
 
 ```shell
 pushd build/rsa && ../fortify encrypt -i ../fortify -k rsa  -vT ../../debug/key_rsa/id_rsa_pkcs8.pub; popd
-# Will Fail
 ```
-
-> - PKCS #8 public key is unsupported
 
 ```shell
 pushd build/rsa && ../fortify encrypt -i ../fortify -k rsa -vT ../../debug/key_rsa/id_rsa_rfc4716.pub; popd
@@ -132,26 +129,25 @@ pushd build/rsa && ../fortify encrypt -i ../fortify -k rsa -vT ../../debug/key_r
 Execute fortified files using RSA private key:
 
 ```shell
-pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa; popd
+pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa -- version -d; popd
 ```
 
 Execute fortified files using RSA private key in PEM format:
 
 ```shell
-pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa_pem; popd
+pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa_pem -- version -d; popd
 ```
 
 Execute fortified files using RSA private key in RFC 4716 format:
 
 ```shell
-pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa_rfc4716; popd
+pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa_rfc4716 -- version -d; popd
 ```
+
+Execute fortified files using RSA private key in PKCS #8 format:
 
 ```shell
-pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa_pkcs8; popd
-# Will Fail
+pushd build/rsa && ../fortify execute -i fortified.data ../../debug/key_rsa/id_rsa_pkcs8 -- version -d; popd
 ```
-
-> - encrypted PKCS #8 private key is unsupported
 
 ---

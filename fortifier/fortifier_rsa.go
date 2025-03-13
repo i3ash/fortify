@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/deatil/go-cryptobin/pkcs8"
 	"github.com/i3ash/fortify/utils"
 	"golang.org/x/crypto/ssh"
 )
@@ -66,7 +67,9 @@ func (f *Fortifier) setupRsaPublicKey() (err error) {
 				return fmt.Errorf("%s: not public key in PKCS #1, ASN.1 DER form -- %v", rsaFortifier, err)
 			}
 		case "PUBLIC KEY":
-			return fmt.Errorf("%s: PKCS #8 public key is unsupported", rsaFortifier)
+			if k, err = x509.ParsePKIXPublicKey(block.Bytes); err != nil {
+				return fmt.Errorf("%s: error parsing PKCS#8 public key -- %v", rsaFortifier, err)
+			}
 		}
 		if k == nil {
 			return fmt.Errorf("%s: unsupported key type %q", rsaFortifier, block.Type)
@@ -131,7 +134,15 @@ func (f *Fortifier) parseRsaPrivateKey() (*rsa.PrivateKey, error) {
 		block := &blocks[0]
 		switch block.Type {
 		case "ENCRYPTED PRIVATE KEY":
-			err = fmt.Errorf("%s: encrypted PKCS #8 private key is unsupported", rsaFortifier)
+			passphrase := enterPassphrase()
+			var decrypted []byte
+			decrypted, err = pkcs8.DecryptPEMBlock(block, passphrase)
+			if err != nil {
+				return nil, fmt.Errorf("%s: decrypt PKCS #8 private key failed", rsaFortifier)
+			}
+			if k, err = x509.ParsePKCS8PrivateKey(decrypted); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if err != nil {
