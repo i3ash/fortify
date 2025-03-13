@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/deatil/go-cryptobin/pkcs8"
@@ -48,7 +49,10 @@ func (f *Fortifier) setupRsaKey() error {
 func (f *Fortifier) setupRsaPublicKey() (err error) {
 	var pub *rsa.PublicKey
 	parsed, _, _, _, x := ssh.ParseAuthorizedKey(f.key.bytes)
-	if x == nil {
+	if x != nil {
+		parsed, err = ParseSSH2PublicKey(string(f.key.bytes))
+	}
+	if parsed != nil {
 		if parsedCryptoKey, ok := parsed.(ssh.CryptoPublicKey); ok {
 			k := parsedCryptoKey.CryptoPublicKey()
 			pub, _ = k.(*rsa.PublicKey)
@@ -166,4 +170,27 @@ func (f *Fortifier) decodePemFile() (blocks []pem.Block) {
 		blocks = append(blocks, *blk)
 	}
 	return
+}
+
+func ParseSSH2PublicKey(keyData string) (ssh.PublicKey, error) {
+	lines := strings.Split(keyData, "\n")
+	var base64Data string
+	inKey := false
+	for _, line := range lines {
+		if line == "---- BEGIN SSH2 PUBLIC KEY ----" {
+			inKey = true
+			continue
+		}
+		if line == "---- END SSH2 PUBLIC KEY ----" {
+			break
+		}
+		if inKey && !strings.HasPrefix(line, "Comment:") {
+			base64Data += line
+		}
+	}
+	decodedData, err := base64.StdEncoding.DecodeString(base64Data)
+	if err != nil {
+		return nil, fmt.Errorf("base64 decoding error: %v", err)
+	}
+	return ssh.ParsePublicKey(decodedData)
 }

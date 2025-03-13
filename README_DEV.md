@@ -119,7 +119,6 @@ pushd build/rsa && ../fortify encrypt -i ../fortify -k rsa  -vT ../../debug/key_
 
 ```shell
 pushd build/rsa && ../fortify encrypt -i ../fortify -k rsa -vT ../../debug/key_rsa/id_rsa_rfc4716.pub; popd
-# Will Fail
 ```
 
 > - RFC 4716 public key is unsupported
