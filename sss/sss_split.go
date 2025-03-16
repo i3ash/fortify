@@ -2,33 +2,34 @@ package sss
 
 import (
 	"bufio"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/i3ash/fortify/files"
-	"github.com/i3ash/fortify/shamir"
+	"github.com/i3ash/fortify/pkg/gf256"
 	"github.com/i3ash/fortify/utils"
 )
 
 func Split(secret []byte, parts, threshold uint8) ([]Part, error) {
-	var err error
-	var out [][]byte
-	var outParts []Part
-	out, err = shamir.Split(secret, int(parts), int(threshold))
+	out, err := SplitIntoShares(secret, parts, threshold)
 	if err != nil {
-		return outParts, err
+		return nil, err
 	}
+	var outParts []Part
 	digest := utils.ComputeDigest(secret)
-	for index, i := range out {
+	for index, share := range out {
 		p := Part{
 			Parts:     parts,
 			Part:      index + 1,
-			Payload:   base64.URLEncoding.EncodeToString(i),
+			Payload:   base64.URLEncoding.EncodeToString(share),
 			Timestamp: time.Now(),
 			Threshold: threshold,
 			Digest:    digest,
@@ -170,4 +171,70 @@ func CloseAllFilesForWrite() {
 	}
 	clear(openedFilesForWrite)
 	clear(openedFilesForWriteCloser)
+}
+
+var (
+	ErrThresholdTooSmall     = errors.New("threshold must be at least 2")
+	ErrInvalidPartsThreshold = errors.New("threshold cannot be greater than parts")
+	ErrEmptySecret           = errors.New("secret is empty")
+)
+
+func SplitIntoShares(secret []byte, parts, threshold uint8) ([]Share, error) {
+	if threshold < 2 {
+		return nil, ErrThresholdTooSmall
+	}
+	if threshold > parts {
+		return nil, ErrInvalidPartsThreshold
+	}
+	if len(secret) == 0 {
+		return nil, ErrEmptySecret
+	}
+	var xs []uint8
+	if xs0, err := generateSecureXCoordinates(parts); err != nil {
+		return nil, err
+	} else {
+		xs = xs0
+	}
+	secretLen := len(secret)
+	shares := make([]Share, parts)
+	for i := range shares {
+		shares[i] = make([]byte, secretLen+1)
+		shares[i][secretLen] = xs[i]
+	}
+	for j, intercept := range secret {
+		p, err := gf256.NewPolynomial(intercept, threshold-1, rand.Reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create polynomial: %w", err)
+		}
+		for i := range shares {
+			x := shares[i][secretLen]
+			shares[i][j] = gf256.PolynomialEvaluate(p, x)
+		}
+	}
+	return shares, nil
+}
+
+// generateSecureXCoordinates generates cryptographically secure x coordinates
+func generateSecureXCoordinates(count uint8) ([]uint8, error) {
+	// Generate random bytes for x coordinates
+	xValues := make([]uint8, count)
+	if _, err := io.ReadFull(rand.Reader, xValues); err != nil {
+		return nil, fmt.Errorf("failed to generate secure x coordinates: %w", err)
+	}
+	// Ensure no duplicate values and no zeros
+	used := make(map[uint8]bool)
+	for i, x := range xValues {
+		// Make sure it's not a zero, which is reserved for the secret
+		for x == 0 || used[x] {
+			// Get a new random byte
+			buf := make([]byte, 1)
+			if _, err := io.ReadFull(rand.Reader, buf); err != nil {
+				return nil, fmt.Errorf("failed to generate unique x coordinate: %w", err)
+			}
+			x = buf[0]
+		}
+		used[x] = true
+		xValues[i] = x
+	}
+	return xValues, nil
 }

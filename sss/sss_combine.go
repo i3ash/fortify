@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/i3ash/fortify/files"
-	"github.com/i3ash/fortify/shamir"
+	"github.com/i3ash/fortify/pkg/gf256"
 	"github.com/i3ash/fortify/utils"
 )
 
@@ -19,7 +19,7 @@ func Combine(parts []Part) ([]byte, error) {
 		secret []byte
 		expect string
 	)
-	shares := make([][]byte, len(parts))
+	shares := make([]Share, len(parts))
 	for index, i := range parts {
 		if share, err := base64.URLEncoding.DecodeString(i.Payload); err != nil {
 			return secret, err
@@ -37,7 +37,7 @@ func Combine(parts []Part) ([]byte, error) {
 		}
 	}
 	var err error
-	if secret, err = shamir.Combine(shares); err != nil {
+	if secret, err = CombineFromShares(shares); err != nil {
 		return secret, err
 	}
 	return secret, nil
@@ -192,4 +192,45 @@ func CombinePartFiles(in []string, out string, truncate, verbose bool) error {
 		}
 	}
 	return nil
+}
+
+var (
+	ErrShareCountNotEnough = errors.New("length of shares must be at least 2")
+	ErrFirstShareInvalid   = errors.New("length of first share must be at least 2")
+	ErrDuplicatedShare     = errors.New("duplicated share is disallowed")
+)
+
+func CombineFromShares(shares []Share) ([]byte, error) {
+	if len(shares) < 2 {
+		return nil, ErrShareCountNotEnough
+	}
+	shareLen := len(shares[0])
+	if shareLen < 2 {
+		return nil, ErrFirstShareInvalid
+	}
+	for i := 1; i < len(shares); i++ {
+		if len(shares[i]) != shareLen {
+			return nil, fmt.Errorf("length of shares[%d] must be %d", i, shareLen)
+		}
+	}
+	xSet := map[uint8]bool{}
+	xSamples := make([]uint8, len(shares))
+	for i, share := range shares {
+		x := share[shareLen-1]
+		xSamples[i] = x
+		xSet[x] = true
+	}
+	if len(xSet) != len(xSamples) {
+		return nil, ErrDuplicatedShare
+	}
+	secret := make([]byte, shareLen-1)
+	ySamples := make([]uint8, len(shares))
+	for idx := range secret {
+		for i, share := range shares {
+			ySamples[i] = share[idx]
+		}
+		val := gf256.InterpolatePolynomial(xSamples, ySamples, 0)
+		secret[idx] = val
+	}
+	return secret, nil
 }

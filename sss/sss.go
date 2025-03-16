@@ -8,6 +8,8 @@ import (
 const fileBlockSize = 512 * 1024
 const maxScannerTokenSize = 768 * 1024
 
+type Share = []byte
+
 type Part struct {
 	Payload   string    `json:"payload"`
 	Block     int       `json:"block"`
