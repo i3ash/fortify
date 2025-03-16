@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       os: { type: string, default: 'ubuntu-24.04', description: "Name of the OS that jobs run on" }
-      go-version: { type: string, default: '1.22', description: "Version of Go" }
+      go-version: { type: string, default: '1.23', description: "Version of Go" }
 
 jobs:
   set-matrix:
@@ -71,7 +71,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.6' }
+        with: { ref: '1.0.8' }
 
       - name: Prepare
         shell: bash
@@ -107,7 +107,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.6' }
+        with: { ref: '1.0.8' }
 
       - name: Build Darwin Universal
         shell: bash

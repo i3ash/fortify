@@ -33,7 +33,7 @@ jobs:
 
       - name: Setup CIDoer
         uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.6' }
+        with: { ref: '1.0.8' }
 
       - name: Prepare
         shell: bash

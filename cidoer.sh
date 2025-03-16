@@ -3,7 +3,7 @@
 set -eou pipefail
 
 if [ ! -f .cidoer/cidoer.core.sh ]; then
-  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.6'
+  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.8'
 fi
 source .cidoer/cidoer.core.sh
 
