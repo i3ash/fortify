@@ -15,7 +15,6 @@ jobs:
     with:
       os: '${{ matrix.os }}'
       go-version: '${{ matrix.go }}'
-  ##build
   release:
     needs: [ build ]
     name: Release
@@ -35,5 +34,5 @@ jobs:
           token: ${{ secrets.TOKEN_FOR_RELEASE }}
           files: "/tmp/artifacts/**/*"
           fail_on_unmatched_files: false
-  ##release
-##jobs
+##---------------------
+## 250313

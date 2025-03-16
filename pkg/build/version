@@ -1,0 +1,7 @@
+package build
+
+const (
+	Version    = "<ARTIFACT_TAG>"
+	CommitHash = "<COMMIT_HASH>"
+	Time       = "<BUILD_TIME>"
+)

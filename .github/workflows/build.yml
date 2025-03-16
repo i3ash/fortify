@@ -62,16 +62,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: 'true'
-          fetch-depth: 20
+          fetch-depth: 0
           fetch-tags: true
 
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
-
-      - name: Setup CIDoer
-        uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.8' }
 
       - name: Prepare
         shell: bash
@@ -104,11 +100,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { path: /tmp/artifacts, pattern: '*' }
       - run: ls -lhAR /tmp/artifacts
-
-      - name: Setup CIDoer
-        uses: i3ash/setup-cidoer@v1
-        with: { ref: '1.0.8' }
-
       - name: Build Darwin Universal
         shell: bash
         run: |
@@ -123,3 +114,6 @@ jobs:
           retention-days: 3
           name: ${{ env.ArtifactFilename }}
           path: ${{ github.workspace }}/${{ env.ArtifactFilename }}
+
+##---------------------
+## 250313
