@@ -111,7 +111,6 @@ func CombinePartFiles(in []string, out string, truncate, verbose bool) error {
 		scanners[i].Buffer(buf, maxScannerTokenSize)
 		scanners[i].Split(bufio.ScanLines)
 	}
-
 	parts := make([]Part, size)
 	count := 0
 	for {
@@ -160,19 +159,21 @@ func CombinePartFiles(in []string, out string, truncate, verbose bool) error {
 		if count == 0 && verbose {
 			fmt.Printf("Blocks count: %d\n", blocks)
 		}
-		if count == 0 && output != nil {
-			var stat os.FileInfo
-			if stat, err = output.Stat(); err != nil {
-				return err
-			}
-			if stat.Size() > 0 {
-				if truncate {
-					if err = output.Truncate(0); err != nil {
-						return err
+		if output != nil {
+			if count == 0 {
+				var stat os.FileInfo
+				if stat, err = output.Stat(); err != nil {
+					return err
+				}
+				if stat.Size() > 0 {
+					if truncate {
+						if err = output.Truncate(0); err != nil {
+							return err
+						}
+						fmt.Printf("Truncate output file: %s\n", out)
+					} else {
+						return errors.New("output file is not empty")
 					}
-					fmt.Printf("Truncate output file: %s\n", out)
-				} else {
-					return errors.New("output file is not empty")
 				}
 			}
 			if _, err = output.Write(secret); err != nil {
