@@ -65,8 +65,14 @@ func cmdVersion() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if detailed {
-				build.PrintBuildInfo()
+			json, err := cmd.Flags().GetBool("json")
+			if err != nil {
+				return err
+			}
+			if json {
+				build.PrintJsonVersionDetail()
+			} else if detailed {
+				build.PrintVersionDetail()
 			} else {
 				build.PrintVersion()
 			}
@@ -74,5 +80,6 @@ func cmdVersion() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolP("detail", "d", false, "Print detailed build information")
+	cmd.Flags().BoolP("json", "j", false, "Print JSON encoded build information")
 	return cmd
 }
