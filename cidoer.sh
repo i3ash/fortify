@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
 set -eu -o pipefail
-[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.8'
+[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.9'
 source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
@@ -18,7 +18,7 @@ define_prepare() {
   }
   prepare_version() {
     do_print_dash_pair "${FUNCNAME[0]}"
-    local -r tag="$(do_git_version_next)" && export ARTIFACT_TAG="$tag"
+    local -r tag="$(do_git_semantic_version)" && export ARTIFACT_TAG="$tag"
     if do_git_diff; then
       local -r COMMIT_HASH="$(do_git_short_commit_hash)"
       local -r BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')

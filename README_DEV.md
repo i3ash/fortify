@@ -41,9 +41,8 @@ pushd build/sss && ../fortify sss combine -o combined.out -vT 1of5.json 3of5.jso
 ```
 
 **Tips:**
-
 - For enhanced security, store generated secret shares in different locations.
-- While suitable for processing large files, this method may not be optimal for smaller files.
+- Although it can handle large files, the processing speed is limited.
 
 ### Encrypting with Randomly Generated Secret Key
 

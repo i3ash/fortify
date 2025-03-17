@@ -185,9 +185,9 @@ func CombinePartFiles(in []string, out string, truncate, verbose bool) error {
 			l := len(secret)
 			w := len(fmt.Sprintf("%d", blocks))
 			if output != nil {
-				fmt.Printf("Block %*d/%d OK -- recovered %d bytes and appended them into %s\n", w, block, blocks, l, out)
+				fmt.Printf("Block %*d/%d OK -- recovered %6d bytes and appended them into %s\n", w, block, blocks, l, out)
 			} else {
-				fmt.Printf("Block %*d/%d OK -- recovered %d bytes\n", w, block, blocks, l)
+				fmt.Printf("Block %*d/%d OK -- recovered %6d bytes\n", w, block, blocks, l)
 			}
 		}
 	}
