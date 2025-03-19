@@ -18,7 +18,7 @@ using one of these methods:
 
 - **Linux**:
   ```shell
-  /usr/bin/env sh -c "$(curl -fsSL https://fortify.i3ash.com/install.sh)"
+  curl -fsSL https://fortify.i3ash.com/install.sh | sh
   ```
 - **macOS**:
   ```shell
