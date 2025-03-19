@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: "Fortify",
-  description: "Fortify is a CLI tool using AES-256 encryption for file protection, supporting Shamir's Secret Sharing and RSA encryption. Installation includes various methods. More details at [GitHub](https://github.com/i3ash/fortify).",
+  description: "Fortify is a command-line security tool for file encryption and protection. More details at [GitHub](https://github.com/i3ash/fortify).",
   vite: {
     server: {
       allowedHosts: true,
@@ -12,9 +12,6 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Getting Started', link: '/getting-started' },
-      { text: 'Installation Guide', link: '/installation-guide' },
-      { text: 'Usage Guide', link: '/usage-guide' },
-      { text: 'Tutorial', link: '/tutorial' },
     ],
     sidebar: [
       {
@@ -22,9 +19,6 @@ export default defineConfig({
         items: [
           { text: 'Home', link: '/' },
           { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Installation Guide', link: '/installation-guide' },
-          { text: 'Usage Guide', link: '/usage-guide' },
-          { text: 'Tutorial', link: '/tutorial' },
         ]
       }
     ],

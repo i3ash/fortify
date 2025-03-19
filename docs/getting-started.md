@@ -1,76 +1,54 @@
-# Introduction to Fortify 🌐
-
-Welcome to **Fortify**, a command-line tool designed for file security through encryption. Fortify uses advanced cryptographic methods to keep your files safe from unauthorized access.
-
-## Key Features 🔑
-
-- **File Encryption**: Encrypt files using the AES-256 standard.
-- **Key Protection**: Secure AES secret keys with Shamir's Secret Sharing (SSS) or RSA encryption methods.
-- **Flexible Decryption**: Decrypt or execute protected files as needed.
-
-## Installation 
-
-`fortify` is available as a standalone static executable binary without additional dependencies. Here's how you can install it:
-
-- **Linux**: 
-  ```shell
-  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/fortify/install.sh)"
-  ```
-  
-- **macOS**: 
-  ```shell
-  brew install i3ash/bin/fortify
-  ```
-
-- **Go Install**:
-  ```shell
-  go install github.com/i3ash/fortify@latest
-  ```
-
-- **Docker**:
-  ```shell
-  docker run --rm i3ash/fortify version
-  ```
-
-- **Direct Download**: Get the precompiled binary from [releases](https://github.com/i3ash/fortify/releases).
-
-## Using Fortify
+# Using Fortify
 
 Fortify offers two primary encryption methods:
 
-### Shamir's Secret Sharing (SSS) 🔐
+## 1. Run `fortify` with SSS (Shamir's Secret Sharing)
 
-- **Encryption**: 
-  Use randomly generated key parts:
-  ```shell
-  fortify encrypt -i <input_file> -o <output_file>
-  ```
+### Encryption
 
-- **Decryption**:
-  ```shell
-  fortify decrypt -i <fortified_file> <key_part1> <key_part2> ...
-  ```
+Encrypt files with randomly generated key parts:
 
-- **Execution**:
-  ```shell
-  fortify execute -i <fortified_file> <key_part1> <key_part2> ...
-  ```
+`fortify encrypt -i <input_file> -o <output_file>`
 
-### RSA Encryption
+Or generate key parts first
 
-- **Encryption**: 
-  ```shell
-  fortify encrypt -i <input_file> -k rsa <public_key_file>
-  ```
+`fortify sss random -b 32 -p <number_of_shares> -t <threshold>`
 
-- **Decryption**: 
-  ```shell
-  fortify decrypt -i <fortified_file> <private_key_file>
-  ```
+then encrypt files with specified key parts:
 
-- **Execution**: 
-  ```shell
-  fortify execute -i <fortified_file> <private_key_file>
-  ```
+`fortify encrypt -i <input_file> <key_part1> <key_part2> ...`
 
-For detailed development instructions, licensing, and contribution guidelines, check out the [Developer's Guide](https://github.com/i3ash/fortify/blob/main/README_DEV.md). Fortify aims to securely protect your files. 🛡️
+### Decryption
+
+Decrypt files with specified key parts:
+
+`fortify decrypt -i <fortified_file> <key_part1> <key_part2> ...`
+
+### Execution
+
+Execute fortified files with specified key parts:
+
+`fortify execute -i <fortified_file> <key_part1> <key_part2> ...`
+
+
+## 2. Run `fortify` with RSA
+
+### Encryption
+
+Encrypt files with RSA public key:
+
+`fortify encrypt -i <input_file> -k rsa <public_key_file>`
+
+### Decryption
+
+Decrypt files with RSA private key:
+
+`fortify decrypt -i <fortified_file> <private_key_file>`
+
+### Execution
+
+Execute fortified files with RSA private key:
+
+`fortify execute -i <fortified_file> <private_key_file>`
+
+For detailed development instructions, licensing, and contribution guidelines, check out the [Developer's Guide](https://github.com/i3ash/fortify/blob/main/README_DEV.md).

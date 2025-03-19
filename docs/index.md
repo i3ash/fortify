@@ -1,36 +1,36 @@
 # Introduction
 
-**Fortify** is a command-line tool designed to enhance file security through encryption. It is available as a standalone static executable binary and can be installed on a variety of platforms.
+`fortify` is a command-line security tool for file encryption and protection.
 
 ## Main Features
 
-- 🔒 Encrypt files with AES-256 encryption.
-- 🛡️ Protect AES secret keys using Shamir's Secret Sharing (SSS) or RSA encryption.
-- 🔄 Support for both encryption and decryption.
-- 🚀 Execute encrypted files directly using specified keys.
+- 📦 Golang implementation of Shamir’s Secret Sharing (SSS).
+- 🧩 Split secret files into multiple shares with SSS, and reconstruct files when the threshold number of shares is
+  available.
+- 🔒 Encrypt files using AES-256, protecting AES keys with either SSS or RSA encryption.
+- 🚀 Directly execute encrypted files by providing the required keys.
 
-## Quick Start Guide
+## Installation
 
-`fortify` is available as a standalone static executable binary and doesn't require any external dependencies.
+`fortify` is distributed as a standalone static executable with zero external dependencies.
+Download pre-compiled binaries from our [GitHub Releases](https://github.com/i3ash/fortify/releases) page, or install
+using one of these methods:
 
-### Installation Steps
-
-- **Linux**:  
+- **Linux**:
   ```shell
-  /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/fortify/install.sh)"
+  /usr/bin/env sh -c "$(curl -fsSL https://fortify.i3ash.com/install.sh)"
   ```
-- **macOS**:  
+- **macOS**:
   ```shell
   brew install i3ash/bin/fortify
   ```
-- **Go Install**:  
+- **Go Install**:
   ```shell
   go install github.com/i3ash/fortify@latest
   ```
-- **Docker**:  
+- **Docker**:
   ```shell
   docker run --rm i3ash/fortify version
   ```
-- **Download**: Precompiled binaries are available [here](https://github.com/i3ash/fortify/releases).
 
-For more in-depth instructions on using Fortify, visit the [Getting Started](/getting-started.md) guide.
+For more detailed instructions and usage examples, please refer to the [Getting Started](getting-started.md) guide.
