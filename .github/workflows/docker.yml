@@ -85,6 +85,17 @@ jobs:
           source cidoer.sh
           do_workflow_job docker_distroless
 
+      - name: Build and Push Docker Images - Distroless_nonroot
+        if: env.ArtifactTag != 'v0'
+        working-directory: '${{ github.workspace }}'
+        env:
+          DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.out-docker-image }}
+          ARTIFACT_TAG: ${{ env.ArtifactTag }}-nonroot
+          LATEST_TAG: ${{ inputs.out-docker-latest }}
+        run: |
+          source cidoer.sh
+          do_workflow_job docker_distroless_nonroot
+
       - name: Build and Push Docker Images - Minimal
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'

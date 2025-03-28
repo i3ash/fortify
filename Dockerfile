@@ -22,6 +22,12 @@ WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
+FROM --platform=$BUILDPLATFORM gcr.io/distroless/static-debian12:nonroot AS distroless_nonroot
+ENV PATH="/usr/local/bin"
+WORKDIR /home/nonroot
+COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
+ENTRYPOINT ["fortify"]
+
 FROM --platform=$BUILDPLATFORM busybox:stable-glibc AS busybox
 WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
 set -eu -o pipefail
-[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.9'
+[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.12'
 source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
@@ -165,6 +165,18 @@ define_docker_distroless() {
     docker buildx build "${tags[@]}" \
       --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
       --target distroless --push .
+  }
+}
+
+define_docker_distroless_nonroot() {
+  docker_distroless_nonroot_do() {
+    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
+    if [ "$LATEST_TAG" = "true" ]; then
+      tags+=(--tag "$DOCKER_IMAGE:nonroot")
+    fi
+    docker buildx build "${tags[@]}" \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
+      --target distroless_nonroot --push .
   }
 }
 
