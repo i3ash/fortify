@@ -5,9 +5,9 @@ go 1.23.0
 require (
 	github.com/deatil/go-cryptobin v1.0.5028
 	github.com/spf13/cobra v1.9.1
-	golang.org/x/crypto v0.36.0
-	golang.org/x/sys v0.31.0
-	golang.org/x/term v0.30.0
+	golang.org/x/crypto v0.37.0
+	golang.org/x/sys v0.32.0
+	golang.org/x/term v0.31.0
 )
 
 require (
