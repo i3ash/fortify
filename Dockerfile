@@ -16,30 +16,30 @@ WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM gcr.io/distroless/static-debian12:latest AS distroless
+FROM gcr.io/distroless/static-debian12:latest AS distroless
 ENV PATH="/usr/local/bin"
 WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM gcr.io/distroless/static-debian12:nonroot AS distroless_nonroot
+FROM gcr.io/distroless/static-debian12:nonroot AS distroless_nonroot
 ENV PATH="/usr/local/bin"
 WORKDIR /home/nonroot
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM busybox:stable-glibc AS busybox
+FROM busybox:stable-glibc AS busybox
 WORKDIR /root
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM alpine:3.21 AS alpine
+FROM alpine:3.21 AS alpine
 WORKDIR /root
 RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/
 ENTRYPOINT ["fortify"]
 
-FROM --platform=$BUILDPLATFORM debian:stable-slim AS debian
+FROM debian:stable-slim AS debian
 WORKDIR /root
 RUN apt-get update && apt-get upgrade -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY --from=builder --chmod=555 /app/fortify /usr/local/bin/

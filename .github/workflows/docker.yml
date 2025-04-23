@@ -51,8 +51,10 @@ jobs:
           source cidoer.sh
           do_workflow_job prepare
           echo "ArtifactTag=${ARTIFACT_TAG:-v0}" >> $GITHUB_ENV
+          docker buildx ls --no-trunc
 
       - name: Build and Push Docker Images - Debian
+        continue-on-error: true
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
         env:
@@ -64,6 +66,7 @@ jobs:
           do_workflow_job docker_debian
 
       - name: Build and Push Docker Images - Alpine
+        continue-on-error: true
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
         env:
@@ -75,6 +78,7 @@ jobs:
           do_workflow_job docker_alpine
 
       - name: Build and Push Docker Images - Distroless
+        continue-on-error: true
         if: env.ArtifactTag != 'v0'
         working-directory: '${{ github.workspace }}'
         env:

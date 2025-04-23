@@ -127,7 +127,7 @@ define_docker_debian() {
       tags+=(--tag "$DOCKER_IMAGE:debian")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/s390x \
+      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x \
       --target debian --push .
   }
 }
@@ -163,7 +163,7 @@ define_docker_distroless() {
       tags+=(--tag "$DOCKER_IMAGE:distroless")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
+      --platform linux/amd64,linux/arm/v7,linux/arm64,linux/s390x,linux/ppc64le \
       --target distroless --push .
   }
 }
@@ -175,7 +175,7 @@ define_docker_distroless_nonroot() {
       tags+=(--tag "$DOCKER_IMAGE:nonroot")
     fi
     docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
+      --platform linux/amd64,linux/arm/v7,linux/arm64,linux/s390x,linux/ppc64le \
       --target distroless_nonroot --push .
   }
 }
