@@ -6,7 +6,7 @@ require (
 	github.com/deatil/go-cryptobin v1.1.1002
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/crypto v0.37.0
-	golang.org/x/sys v0.32.0
+	golang.org/x/sys v0.33.0
 	golang.org/x/term v0.31.0
 )
 
