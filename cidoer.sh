@@ -1,38 +1,12 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2317
 set -eu -o pipefail
-[ -f .cidoer/cidoer.core.sh ] || /usr/bin/env sh -c "$(curl -fsSL https://i3ash.com/cidoer/install.sh)" -- '1.0.12'
-source .cidoer/cidoer.core.sh
 
 declare -rx ARTIFACT_CMD='fortify'
 
 define_test() {
   test_do() {
     go test -v ./...
-  }
-}
-
-define_prepare() {
-  prepare_do() {
-    prepare_version
-  }
-  prepare_version() {
-    do_print_dash_pair "${FUNCNAME[0]}"
-    local -r tag="$(do_git_semantic_version)" && export ARTIFACT_TAG="$tag"
-    if do_git_diff; then
-      local -r COMMIT_HASH="$(do_git_short_commit_hash)"
-      local -r BUILD_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-    else
-      local -r COMMIT_HASH="-"
-      local -r BUILD_TIME=$(date -u '+%Y-%m-%d')
-    fi
-    pushd pkg/build >/dev/null || return 0
-    [ -f version ] && {
-      do_file_replace \< \> <version >version.go
-      do_print_code_lines 'go' "$(cat version.go)"
-    }
-    popd >/dev/null || :
-    do_print_trace "$(do_stack_trace)" done!
   }
 }
 
@@ -120,74 +94,154 @@ define_build_darwin_universal() {
   }
 }
 
-define_docker_debian() {
-  docker_debian_do() {
-    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
-    if [ "$LATEST_TAG" = "true" ]; then
-      tags+=(--tag "$DOCKER_IMAGE:debian")
-    fi
-    docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x \
-      --target debian --push .
+define_cidoer_core() {
+  [ -f cidoer.print.sh ] && source cidoer.print.sh
+  declare -F '_print_defined' >/dev/null || { declare -F 'define_cidoer_print' >/dev/null && define_cidoer_print; }
+  declare -F '_core_defined' >/dev/null && return 0
+  _core_defined() { :; }
+  CIDOER_DEBUG='no'
+  CIDOER_OS_TYPE=''
+  CIDOER_HOST_TYPE=''
+  do_workflow_job() {
+    local -r job_type=$(do_trim "${1:-}")
+    [[ "${job_type:-}" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || {
+      do_print_warn "$(do_stack_trace)" $'$1 (job_type) is invalid:' "'${1:-}'" >&2
+      return 1
+    }
+    local -a steps=()
+    local arg step
+    for arg in "${@:2}"; do
+      step=$(do_trim "$arg")
+      [[ "${step:-}" =~ ^[a-zA-Z0-9_]*$ ]] || {
+        do_print_warn "$(do_stack_trace)" "step name of '${job_type:-}' is invalid:" "'${step:-}'" >&2
+        return 1
+      }
+      steps+=("$step")
+    done
+    [ ${#steps[@]} -le 0 ] && steps=('do')
+    local -r lower=$(do_convert_to_lower "$job_type")
+    for step in "${steps[@]}"; do
+      declare -F "${lower}_${step}" >/dev/null && local -r defined=1 && break
+    done
+    [ "${defined:-0}" -eq 1 ] || {
+      do_func_invoke "define_${lower}" "${steps[@]}" || return $?
+    }
+    for step in "${steps[@]}"; do
+      do_func_invoke "${lower}_${step}" || return $?
+    done
   }
-}
-
-define_docker_alpine() {
-  docker_alpine_do() {
-    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
-    if [ "$LATEST_TAG" = "true" ]; then
-      tags+=(--tag "$DOCKER_IMAGE:alpine")
-    fi
-    docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/riscv64,linux/s390x \
-      --target alpine --push .
+  do_func_invoke() {
+    local -r func_name="${1:-}"
+    local -r func_finally="${func_name}_finally"
+    [ -z "$func_name" ] && {
+      do_print_warn "$(do_stack_trace)" $'$1 (func_name) is required' >&2
+      return 0
+    }
+    declare -F "$func_name" >/dev/null || {
+      do_print_trace "$(do_stack_trace)" "$func_name is an absent function" >&2
+      return 0
+    }
+    "${@}" || local -r status=$?
+    declare -F "$func_finally" >/dev/null && {
+      [ "${status:-0}" -eq 0 ] || do_print_info "$(do_stack_trace)" "$func_name failed with exit code $status" >&2
+      "$func_finally" "${status:-0}" || local -r code=$?
+      [ "${code:-0}" -eq 0 ] || do_print_warn "$(do_stack_trace)" "$func_finally failed with exit code $code" >&2
+      return "${code:-0}"
+    }
+    [ "${status:-0}" -eq 0 ] || do_print_warn "$(do_stack_trace)" "$func_name failed with exit code $status" >&2
+    return "${status:-0}"
   }
-}
-
-define_docker_busybox() {
-  docker_busybox_do() {
-    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
-    if [ "$LATEST_TAG" = "true" ]; then
-      tags+=(--tag "$DOCKER_IMAGE:busybox")
-    fi
-    docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
-      --target busybox --push .
+  do_trim() {
+    local var="${1:-}"
+    var="${var#"${var%%[![:space:]]*}"}"
+    var="${var%"${var##*[![:space:]]}"}"
+    printf '%s' "$var"
   }
-}
-
-define_docker_distroless() {
-  docker_distroless_do() {
-    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
-    if [ "$LATEST_TAG" = "true" ]; then
-      tags+=(--tag "$DOCKER_IMAGE:distroless")
-    fi
-    docker buildx build "${tags[@]}" \
-      --platform linux/amd64,linux/arm/v7,linux/arm64,linux/s390x,linux/ppc64le \
-      --target distroless --push .
+  do_convert_to_lower() {
+    local input="${1:-}"
+    do_check_bash_4 && printf '%s\n' "${input,,}" && return 0
+    printf '%s\n' "$input" | sed 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'
   }
-}
-
-define_docker_distroless_nonroot() {
-  docker_distroless_nonroot_do() {
-    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
-    if [ "$LATEST_TAG" = "true" ]; then
-      tags+=(--tag "$DOCKER_IMAGE:nonroot")
-    fi
-    docker buildx build "${tags[@]}" \
-      --platform linux/amd64,linux/arm/v7,linux/arm64,linux/s390x,linux/ppc64le \
-      --target distroless_nonroot --push .
+  do_os_type() {
+    [ -n "${CIDOER_OS_TYPE:-}" ] && {
+      printf '%s\n' "${CIDOER_OS_TYPE:-}"
+      return 0
+    }
+    if [ -z "${OSTYPE:-}" ]; then
+      command -v uname >/dev/null 2>&1 && local -r os="$(uname -s)"
+    else local -r os="${OSTYPE:-}"; fi
+    local -r type=$(do_convert_to_lower "$os")
+    case "${type:-}" in
+    linux*) CIDOER_OS_TYPE='linux' ;;
+    darwin*) CIDOER_OS_TYPE='darwin' ;;
+    cygwin* | msys* | mingw* | windows*) CIDOER_OS_TYPE='windows' ;;
+    *) CIDOER_OS_TYPE='unknown' ;;
+    esac
+    printf '%s\n' "${CIDOER_OS_TYPE:-}"
   }
-}
-
-define_docker_minimal() {
-  docker_minimal_do() {
-    local tags=(--tag "$DOCKER_IMAGE:$ARTIFACT_TAG")
-    if [ "$LATEST_TAG" = "true" ]; then
-      tags+=(--tag "$DOCKER_IMAGE:latest")
-    fi
-    docker buildx build "${tags[@]}" \
-      --platform linux/386,linux/amd64,linux/arm/v5,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/riscv64,linux/s390x \
-      --target minimal --push .
+  do_host_type() {
+    [ -n "${CIDOER_HOST_TYPE:-}" ] && {
+      printf '%s\n' "$CIDOER_HOST_TYPE"
+      return 0
+    }
+    if [ -z "${HOSTTYPE:-}" ]; then
+      command -v uname >/dev/null 2>&1 && local -r host="$(uname -m)"
+    else local -r host="${HOSTTYPE:-}"; fi
+    local -r type=$(do_convert_to_lower "$host")
+    case "$type" in
+    x86_64 | amd64 | x64) CIDOER_HOST_TYPE='x86_64' ;;
+    i*86 | x86) CIDOER_HOST_TYPE='x86' ;;
+    arm64 | aarch64) CIDOER_HOST_TYPE='arm64' ;;
+    armv5* | armv6* | armv7* | aarch32) CIDOER_HOST_TYPE='arm' ;;
+    armv8*) CIDOER_HOST_TYPE="$type" ;;
+    ppc | powerpc) CIDOER_HOST_TYPE='ppc' ;;
+    ppc64 | ppc64le) CIDOER_HOST_TYPE="$type" ;;
+    mips | mips64 | mipsle | mips64le | s390x | riscv64) CIDOER_HOST_TYPE="$type" ;;
+    *) CIDOER_HOST_TYPE='unknown' ;;
+    esac
+    printf '%s\n' "$CIDOER_HOST_TYPE"
   }
+  do_check_bash_4() {
+    [ -z "${BASH_VERSION:-}" ] && return 1
+    [ "${BASH_VERSINFO[0]}" -lt 4 ] && return 1
+    return 0
+  }
+  do_print_fix() {
+    declare -F 'do_tint' >/dev/null || do_tint() { printf '%s\n' "- ${*:2}"; }
+    declare -F 'do_print_with_color' >/dev/null || do_print_with_color() { return 1; }
+    declare -F 'do_print_trace' >/dev/null || do_print_trace() { printf '%s\n' "- $*"; }
+    declare -F 'do_print_info' >/dev/null || do_print_info() { printf '%s\n' "= $*"; }
+    declare -F 'do_print_warn' >/dev/null || do_print_warn() { printf '%s\n' "? $*"; }
+    declare -F 'do_print_error' >/dev/null || do_print_error() { printf '%s\n' "! $*"; }
+    declare -F 'do_print_section' >/dev/null || do_print_section() { printf '%s\n' "== $*"; }
+    declare -F 'do_print_dash_pair' >/dev/null || do_print_dash_pair() { printf '%s\n' "-- $*"; }
+    declare -F 'do_print_code_lines' >/dev/null || do_print_code_lines() { printf '%s\n' "$*"; }
+    declare -F 'do_print_code_bash' >/dev/null || do_print_code_bash() { do_print_code_lines "$@"; }
+    declare -F 'do_print_code_bash_fn' >/dev/null || do_print_code_bash_fn() {
+      do_print_code_bash "$(declare -f "$@")"
+    }
+    declare -F 'do_print_code_bash_debug' >/dev/null || do_print_code_bash_debug() {
+      [ "${CIDOER_DEBUG:-no}" != "yes" ] && return 0
+      do_print_code_bash "$@" >&2
+    }
+    declare -F 'do_print_debug' >/dev/null || do_print_debug() {
+      [ "${CIDOER_DEBUG:-no}" != "yes" ] && return 0
+      do_print_code_lines "$@" >&2
+    }
+    declare -F 'do_stack_trace' >/dev/null || do_stack_trace() {
+      # shellcheck disable=SC2319
+      local -ir status=$?
+      local -i idx
+      local -a filtered_fns=()
+      for ((idx = ${#FUNCNAME[@]} - 2; idx > 0; idx--)); do
+        [ 'do_func_invoke' != "${FUNCNAME[$idx]}" ] && filtered_fns+=("${FUNCNAME[$idx]}")
+      done
+      if [ ${#filtered_fns[@]} -gt 0 ]; then
+        printf '%s --> %s\n' "${USER:-$(id -un)}@${HOSTNAME:-$(hostname)}" "${filtered_fns[*]}"
+      else printf '%s -->\n' "${USER:-$(id -un)}@${HOSTNAME:-$(hostname)}"; fi
+      return "$status"
+    }
+  }
+  declare -F 'do_stack_trace' >/dev/null || do_print_fix
 }
+define_cidoer_core

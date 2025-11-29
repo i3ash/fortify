@@ -16,10 +16,7 @@ cleanup() {
 }
 cleanup
 
-declare -rx DO_NOT_REPLACE_VERSION='yes'
-
 source cidoer.sh
-do_workflow_job prepare
 
 if [[ 'darwin' == $(do_os_type) ]]; then
   do_workflow_job build_darwin_arm64
