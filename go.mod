@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/deatil/go-cryptobin v1.1.1010
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	golang.org/x/crypto v0.45.0
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0
