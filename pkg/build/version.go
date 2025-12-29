@@ -1,7 +1,7 @@
 package build
 
 const (
-	Version    = "1.2.42"
+	Version    = "1.3.0"
 	CommitHash = "-"
-	Time       = "2025-12-25"
+	Time       = "2025-12-29"
 )

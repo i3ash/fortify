@@ -18,7 +18,7 @@ import (
 )
 
 const tempFilePrefix = ".oO0"
-const mountBinDir = "/usr/local/sbin"
+const mountBinDir = "/mnt/bin"
 const keyListFile = "/dev/shm/keys/k_fortify"
 
 var cleanupOnce sync.Once
@@ -49,17 +49,16 @@ Required Arguments:
 	}
 }
 
-func execute(input string, args []string) (err error) {
+func execute(input string, args []string) error {
 	files.SetVerbose(flagVerbose)
-	var in *os.File
-	var iCloseFn func()
-	if in, iCloseFn, err = files.OpenInputFile(input); err != nil {
-		return
+	in, iCloseFn, err := files.OpenInputFile(input)
+	if err != nil {
+		return err
 	}
 	defer iCloseFn()
 	layout := &fortifier.FileLayout{}
 	if err = layout.ReadHeadIn(in); err != nil {
-		return
+		return err
 	}
 	docker := dockerYes()
 	merge := args
@@ -73,12 +72,12 @@ func execute(input string, args []string) (err error) {
 	var f *fortifier.Fortifier
 	var rest []string
 	if f, rest, err = newFortifier(meta.Key, meta, merge); err != nil {
-		return
+		return err
 	}
 	var dec fortifier.Decrypter
 	if dec = fortifier.NewDecrypter(meta.Mode, f); dec == nil {
 		err = fmt.Errorf("unknown cipher mode name: %s", meta.Mode)
-		return
+		return err
 	}
 	var out *os.File
 	var command string
@@ -123,7 +122,7 @@ func execute(input string, args []string) (err error) {
 	sig := <-chanSignal
 	_ = process.Signal(sig)
 	wg.Wait()
-	return
+	return err
 }
 
 func permit(path string) error {
