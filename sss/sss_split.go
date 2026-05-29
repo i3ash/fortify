@@ -56,25 +56,27 @@ func SplitIntoFiles(in string, parts, threshold uint8, prefix string, truncate, 
 	var ps []Part
 	for {
 		bytesRead, err = reader.Read(buffer)
+		if bytesRead > 0 {
+			secret := buffer[:bytesRead]
+			ps, err = Split(secret, parts, threshold)
+			if err != nil {
+				return err
+			}
+			err = AppendParts(ps, block, blocks, prefix, truncate)
+			if err != nil {
+				return err
+			}
+			block++
+			if verbose {
+				w := len(fmt.Sprintf("%d", blocks))
+				fmt.Printf("Block %*d/%d OK\n", w, block, blocks)
+			}
+		}
 		if err != nil {
+			if err == io.EOF {
+				break
+			}
 			return err
-		}
-		secret := buffer[:bytesRead]
-		ps, err = Split(secret, parts, threshold)
-		if err != nil {
-			return err
-		}
-		err = AppendParts(ps, block, blocks, prefix, truncate)
-		if err != nil {
-			return err
-		}
-		block++
-		if verbose {
-			w := len(fmt.Sprintf("%d", blocks))
-			fmt.Printf("Block %*d/%d OK\n", w, block, blocks)
-		}
-		if bytesRead < fileBlockSize {
-			break
 		}
 	}
 	return nil

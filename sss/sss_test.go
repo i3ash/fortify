@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -393,5 +394,53 @@ func TestSplitIntoShares_AllZerosSecret(t *testing.T) {
 	}
 	if !bytes.Equal(secret, recovered) {
 		t.Errorf("recovered secret mismatch for zero secret")
+	}
+}
+
+// TestSplitIntoFiles_ExactBlockMultiple proves the bug:
+// When file size is an exact multiple of fileBlockSize,
+// reader.Read returns (0, io.EOF) after the last full block.
+// The current code does `if err != nil { return err }` before
+// processing the data, causing io.EOF to be returned as an error.
+func TestSplitIntoFiles_ExactBlockMultiple(t *testing.T) {
+	defer CloseAllFilesForWrite()
+
+	dir := t.TempDir()
+	inputPath := filepath.Join(dir, "input.bin")
+	prefix := filepath.Join(dir, "share_")
+
+	// Create a file of exactly fileBlockSize bytes (non-zero data)
+	data := make([]byte, fileBlockSize)
+	for i := range data {
+		data[i] = byte(i%251) + 1
+	}
+	if err := os.WriteFile(inputPath, data, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// SplitIntoFiles should succeed without error
+	err := SplitIntoFiles(inputPath, 3, 2, prefix, true, false)
+	if err != nil {
+		t.Fatalf("SplitIntoFiles returned error for file of exact block size: %v", err)
+	}
+
+	// Flush split files before reading them back
+	CloseAllFilesForWrite()
+
+	// Verify round-trip: combine split parts and compare
+	var partFiles []string
+	for i := 1; i <= 3; i++ {
+		partFiles = append(partFiles, fmt.Sprintf("%s%dof%d.json", prefix, i, 3))
+	}
+	parts, err := CombineKeyFiles(partFiles)
+	if err != nil {
+		t.Fatalf("CombineKeyFiles failed: %v", err)
+	}
+	recovered, err := Combine(parts)
+	if err != nil {
+		t.Fatalf("Combine failed: %v", err)
+	}
+	if !bytes.Equal(data, recovered) {
+		t.Errorf("recovered data length=%d, expected %d", len(recovered), len(data))
 	}
 }
