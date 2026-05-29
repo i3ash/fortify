@@ -5,7 +5,7 @@ ARG ALPINE_BASE="alpine:3.23"
 ARG DISTROLESS_BASE="gcr.io/distroless/static-debian12:nonroot"
 ARG WOLFI_BASE="cgr.dev/chainguard/wolfi-base:latest"
 
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT

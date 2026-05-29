@@ -82,14 +82,14 @@ func execute(input string, args []string) error {
 	var out *os.File
 	var command string
 	if docker {
-		command = filepath.Base(in.Name())
-		out, err = os.Create(mountBinDir + "/" + command)
+		command = mountBinDir + "/" + filepath.Base(in.Name())
+		out, err = os.Create(command)
 	} else {
 		if out, err = os.CreateTemp("", tempFilePrefix); err == nil {
 			command = out.Name()
 		}
 	}
-	defer func() { cleanupOnce.Do(func() { cleanup(out) }) }()
+	defer func() { cleanupOnce.Do(func() { if out != nil { cleanup(out) } }) }()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to create file: %v\n", err)
 		return nil
@@ -98,7 +98,7 @@ func execute(input string, args []string) error {
 	err = dec.Decrypt(r, out, layout)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed to decrypt program: %v\n", err)
-		cleanupOnce.Do(func() { cleanup(out) })
+		cleanupOnce.Do(func() { if out != nil { cleanup(out) } })
 		return nil
 	}
 	path := out.Name()
