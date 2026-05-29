@@ -88,7 +88,9 @@ func CombinePartFiles(in []string, out string, truncate, verbose bool) error {
 			return err
 		}
 	}
-	defer oCloseFn()
+	if oCloseFn != nil {
+		defer oCloseFn()
+	}
 	iFiles := make([]*os.File, size)
 	iCloseFn := make([]func(), size)
 	for i, path := range in {

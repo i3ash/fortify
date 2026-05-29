@@ -381,6 +381,23 @@ func TestSplitIntoShares_SingleByteSecret(t *testing.T) {
 	}
 }
 
+func TestCombinePartFiles_EmptyOutNoPanic(t *testing.T) {
+	// CombinePartFiles with empty out should not panic.
+	// Before fix: defer oCloseFn() panics on nil function call.
+	dir := t.TempDir()
+
+	p1 := filepath.Join(dir, "a.json")
+	os.WriteFile(p1, []byte(`{}`), 0644)
+	p2 := filepath.Join(dir, "b.json")
+	os.WriteFile(p2, []byte(`{}`), 0644)
+
+	// This should NOT panic. If it does, the test crashes = FAIL.
+	err := CombinePartFiles([]string{p1, p2}, "", false, false)
+	if err == nil {
+		t.Log("CombinePartFiles with empty out returned nil error (acceptable)")
+	}
+}
+
 func TestSplitIntoShares_AllZerosSecret(t *testing.T) {
 	secret := []byte{0, 0, 0, 0, 0}
 	shares, err := SplitIntoShares(secret, 3, 2)
