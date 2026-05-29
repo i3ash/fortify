@@ -21,7 +21,6 @@ func init() {
 	}
 	c.SetUsageTemplate(fmt.Sprintf(`%s
 Required Arguments:
-Required Arguments:
   <key1>   Path to the first secret share file or private key file if cipher key kind of <input-file> is 'rsa'
   [key2]   [Required cipher key kind of <input-file> is 'sss'] Path to the second secret share file
   ...      Additional paths to secret share files (all files remain unmodified)
