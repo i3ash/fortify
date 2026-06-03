@@ -51,7 +51,7 @@ func (s CipherModeName) String() string {
 
 type CipherMode struct {
 	Name       CipherModeName
-	SteamMaker func(block cipher.Block, iv []byte) cipher.Stream
+	StreamMaker func(block cipher.Block, iv []byte) cipher.Stream
 }
 
 const (

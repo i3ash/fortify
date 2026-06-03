@@ -57,7 +57,7 @@ func (f *Aes256StreamEncrypter) Encrypt(
 	}
 	check := f.key.NewSha256()
 	check.Write(iv)
-	stream := mode.SteamMaker(f.block, iv)
+	stream := mode.StreamMaker(f.block, iv)
 	writer := io.MultiWriter(check, cipher.StreamWriter{S: stream, W: ow})
 	ir := bufio.NewReaderSize(in, defaultReaderBufferSize)
 	var cnt int64
@@ -128,7 +128,7 @@ func (f *Aes256StreamDecrypter) Decrypt(in io.Reader, w io.Writer, layout *FileL
 		return
 	}
 	check := f.key.NewSha256()
-	stream := mode.SteamMaker(f.block, iv)
+	stream := mode.StreamMaker(f.block, iv)
 	var writer io.Writer
 	var ow *bufio.Writer
 	if w != nil {

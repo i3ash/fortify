@@ -17,7 +17,7 @@ func NewAes256EncrypterCTR(f *Fortifier) *Aes256EncrypterCTR {
 func (f *Aes256EncrypterCTR) EncryptFile(in, out *os.File) error {
 	f.meta.Mode = CipherModeAes256CTR
 	return f.Aes256StreamEncrypter.EncryptFile(in, out,
-		CipherMode{Name: CipherModeAes256CTR, SteamMaker: cipher.NewCTR})
+		CipherMode{Name: CipherModeAes256CTR, StreamMaker: cipher.NewCTR})
 }
 
 type Aes256DecrypterCTR struct {
@@ -30,10 +30,10 @@ func NewAes256DecrypterCTR(f *Fortifier) *Aes256DecrypterCTR {
 
 func (f *Aes256DecrypterCTR) Decrypt(r io.Reader, w io.Writer, layout *FileLayout) error {
 	return f.Aes256StreamDecrypter.Decrypt(r, w, layout,
-		CipherMode{Name: CipherModeAes256CTR, SteamMaker: cipher.NewCTR})
+		CipherMode{Name: CipherModeAes256CTR, StreamMaker: cipher.NewCTR})
 }
 
 func (f *Aes256DecrypterCTR) DecryptFile(in, out *os.File, layout *FileLayout) error {
 	return f.Aes256StreamDecrypter.DecryptFile(in, out, layout,
-		CipherMode{Name: CipherModeAes256CTR, SteamMaker: cipher.NewCTR})
+		CipherMode{Name: CipherModeAes256CTR, StreamMaker: cipher.NewCTR})
 }
