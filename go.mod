@@ -1,13 +1,13 @@
 module github.com/i3ash/fortify
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/deatil/go-cryptobin v1.1.1015
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/crypto v0.55.0
-	golang.org/x/sys v0.47.0
-	golang.org/x/term v0.45.0
+	golang.org/x/crypto v0.57.0
+	golang.org/x/sys v0.48.0
+	golang.org/x/term v0.46.0
 )
 
 require (
